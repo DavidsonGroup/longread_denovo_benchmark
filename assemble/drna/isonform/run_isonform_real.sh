@@ -1,0 +1,64 @@
+#!/bin/bash
+# Usage: sbatch slurm-serial-job-script
+# Prepared By: Alex Yan
+#              yan.a@wehi.edu.au
+
+# NOTE: To activate a SLURM option, remove the whitespace between the '#' and 'SBATCH'
+
+# To give your job a name, replace "MyJob" with an appropriate name
+#SBATCH --job-name=ison
+
+# To set a project account for credit charging,
+# SBATCH --account=ls25
+
+# Request CPU resource for a serial job
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=48
+
+# Memory usage (MB)
+#SBATCH --mem-per-cpu=10000
+
+# Set your minimum acceptable walltime, format: day-hours:minutes:seconds
+#SBATCH --time=14-00:00:00
+
+# To receive an email when job completes or fails
+#SBATCH --mail-user=yan.a@wehi.edu.au
+#SBATCH --mail-type=END
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-type=BEGIN
+
+# SBATCH --array=1
+
+# Set the file for output (stdout)
+# SBATCH --output=stdout
+
+# Set the file for error log (stderr)
+# SBATCH --error=stderr
+
+# Use reserved node to run job when a node reservation is made for you already
+# SBATCH --reservation=reservation_name
+
+#SBATCH --partition=long
+# SBATCH --qos=bonus
+
+# SBATCH --dependency=afterok:10567760
+# SBATCH --reservation=highmem
+
+# Command to run a serial job
+
+module purge
+module load miniconda3
+conda activate /stornext/Bioinf/data/lab_davidson/yan.a/conda_env/isoncorrect
+
+raw_reads='/vast/projects/lab_davidson/yan.a/dRNA/A549_MCF7_directRNA_merged.fastq.gz'
+num_cores=48
+base=$(basename $raw_reads _merged.fastq.gz)
+
+zcat $raw_reads > ${base}.fq
+
+mkdir -p ${base}
+
+## simulated data can not run pychopper 
+
+isONform/isON_pipeline.sh --raw_reads ${base}.fq --outfolder ${PWD}/${base} --num_cores ${num_cores} --isONform_folder /stornext/Bioinf/data/lab_davidson/yan.a/conda_env/isoncorrect/bin/ --iso_abundance 5 --mode ont_no_pychopper
