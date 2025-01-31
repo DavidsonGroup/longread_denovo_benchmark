@@ -42,6 +42,7 @@ The simulated data was non-stranded, and contains 2000 DE genes, 2000 genes with
 
 ## Generate summary and quality metrics
 [Code for generating quanlity metrics](qc/)
+
 We have generated the following measures to compare the quality of assemblies.
 1. Transrate analysis of *de novo* transcriptome
 2. BUSCO analysis using raw *de novo* transcriptome
@@ -53,6 +54,7 @@ We have generated the following measures to compare the quality of assemblies.
 
 ## Summarise metric and differential analysis in R
 [Code for summarising and DE analysis](R/)
+
 We then performed DE analysis (DGE, DTE, DTU) using the count matrix from step 7.
 
 ## Generate plot
