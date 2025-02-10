@@ -60,4 +60,6 @@ We then performed DE analysis (DGE, DTE, DTU) using the count matrix from step 7
 ## Generate plot
 
 ## Reference
-
+Towards accurate, reference-free differential expression: A comprehensive evaluation of long-read de novo transcriptome assembly
+Feng Yan, Pedro L. Baldoni, James Lancaster, Matthew E. Ritchie, Mathew G. Lewsey, Quentin Gouil, Nadia M. Davidson.
+**bioRxiv** 2025.02.02.635999; doi: https://doi.org/10.1101/2025.02.02.635999
