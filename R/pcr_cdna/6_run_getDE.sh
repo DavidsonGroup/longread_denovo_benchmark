@@ -63,3 +63,32 @@ Rscript --vanilla dge_limmavoom.R ../trinitystranded/ ../trinitystranded/merged_
 Rscript --vanilla dtu_limmavoom.R ../trinitystranded/ ../trinitystranded/merged_ilu_corset/merged_ilu-clusters_mod.txt trinity_corset_10m map
 Rscript --vanilla dge_limmavoom.R ../trinitystranded/ ../trinitystranded/merged_ilu_corset/merged_ilu-clusters_mod.txt trinity_corset_10m map
 
+## for bambudenovo: 2 counting methods, 2 clustering method, 4 combo intotal
+for i in {2,5,10}
+do
+Rscript --vanilla dtu_limmavoom.R ../bambudenovo/ ../bambudenovo/merged_${i}m_corset/merged_${i}m-clusters_mod.txt bambudenovo_corset_${i}m onts  
+Rscript --vanilla dge_limmavoom.R ../bambudenovo/ ../bambudenovo/merged_${i}m_corset/merged_${i}m-clusters_mod.txt bambudenovo_corset_${i}m onts 
+
+Rscript --vanilla dtu_limmavoom.R ../bambudenovo/ ../bambudenovo/merged_${i}m_dge/filter/tx2gene.txt bambudenovo_bambu_${i}m onts  
+Rscript --vanilla dge_limmavoom.R ../bambudenovo/ ../bambudenovo/merged_${i}m_dge/filter/tx2gene.txt bambudenovo_bambu_${i}m onts 
+
+Rscript --vanilla dtu_limmavoom.R ../bambudenovo/ ../bambudenovo/merged_${i}m_corset/merged_${i}m-clusters_mod.txt bambudenovo_corset_${i}m ontp 
+Rscript --vanilla dge_limmavoom.R ../bambudenovo/ ../bambudenovo/merged_${i}m_corset/merged_${i}m-clusters_mod.txt bambudenovo_corset_${i}m ontp 
+
+Rscript --vanilla dtu_limmavoom.R ../bambudenovo/ ../bambudenovo/merged_${i}m_dge/filter/tx2gene.txt bambudenovo_bambu_${i}m ontp
+Rscript --vanilla dge_limmavoom.R ../bambudenovo/ ../bambudenovo/merged_${i}m_dge/filter/tx2gene.txt bambudenovo_bambu_${i}m ontp 
+done
+
+# for rnaspades: 1 counting methods, 2 clustering method, 2 combo intotal
+Rscript --vanilla dtu_limmavoom.R ../rnaspades/ ../rnaspades/tx2gene.txt rnaspades_rnaspades_10m onts map 
+Rscript --vanilla dge_limmavoom.R ../rnaspades/ ../rnaspades/tx2gene.txt rnaspades_rnaspades_10m onts map
+
+Rscript --vanilla dtu_limmavoom.R ../rnaspades/ ../rnaspades/hybrid_merged_corset/hybrid_merged-clusters_mod.txt rnaspades_corset_10m onts map 
+Rscript --vanilla dge_limmavoom.R ../rnaspades/ ../rnaspades/hybrid_merged_corset/hybrid_merged-clusters_mod.txt rnaspades_corset_10m onts map
+
+# for rnabloom2hybrid: 1 counting methods, 1 clustering method, 1 combo intotal
+Rscript --vanilla dtu_limmavoom.R ../rnabloom2hybrid/ ../rnabloom2hybrid/hybrid_merged_corset/hybrid_merged-clusters_mod.txt rnabloom2hybrid_corset_10m onts map 
+Rscript --vanilla dge_limmavoom.R ../rnabloom2hybrid/ ../rnabloom2hybrid/hybrid_merged_corset/hybrid_merged-clusters_mod.txt rnabloom2hybrid_corset_10m onts map
+
+
+

@@ -20,15 +20,19 @@ bambu_anno <- readRDS('bambu_bambu/summary.rds')
 
 true_dge <- readRDS("../bambu/A549_MCF7_directRNA_dge/R/dge_gene.rds") %>% filter(adj.P.Val < 0.05) %>% 
   left_join(bambu_anno$asm_map, by = c('genes' = 'geneid')) %>% 
-  pull(assigned_gene)
+  pull(assigned_gene) %>%
+  na.omit()
   
-true_dte <- readRDS("../bambu/A549_MCF7_directRNA_dge/R/dte_tx.rds") %>% filter(adj.P.Val < 0.05) %>% pull(transcript_id)
+true_dte <- readRDS("../bambu/A549_MCF7_directRNA_dge/R/dte_tx.rds") %>% filter(adj.P.Val < 0.05) %>% pull(transcript_id) %>%
+  na.omit()
 
 true_dtugene <- readRDS("../bambu/A549_MCF7_directRNA_dge/R/dtu_gene.rds") %>% filter(FDR < 0.05) %>%
   left_join(bambu_anno$asm_map, by = c('gene_id' = 'geneid')) %>% 
-  pull(assigned_gene)
+  pull(assigned_gene) %>%
+  na.omit()
 
-true_dtutx <- readRDS("../bambu/A549_MCF7_directRNA_dge/R/dtu_tx.rds") %>% filter(FDR < 0.05) %>% pull(transcript_id)
+true_dtutx <- readRDS("../bambu/A549_MCF7_directRNA_dge/R/dtu_tx.rds") %>% filter(FDR < 0.05) %>% pull(transcript_id) %>%
+  na.omit()
 
 # # x is the true set, y is the predicted set
 # get_precision_recall <- function(x,y) {

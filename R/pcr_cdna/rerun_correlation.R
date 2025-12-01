@@ -29,10 +29,13 @@ count_add <- data.frame(requested_counts = 0,
 requested_counts <- rbind(requested_counts, count_add)
 
 args <- c('../bambu/',
+          '../bambudenovo/',
           '../rattle/', 
           '../rnabloom2/',
           '../isonform/',
-          '../trinitystranded/'
+          '../trinitystranded/',
+          '../rnaspades/',
+          '../rnabloom2hybrid/'
 )
 
 salmon_files <- lapply(args, function(x) {
@@ -46,7 +49,7 @@ df <- data.frame(path = salmon_files) %>%
   mutate(assembler = str_remove(assembler, 'stranded')) %>%
   separate(dep1, c(NA, "depth", NA), sep = '_') %>%
   mutate(quant = ifelse(str_detect(sample, 'map|onts'), 'sec', 'pri'),
-         depth = ifelse(depth == 'ilu', '10m', depth)) %>%
+         depth = ifelse(depth %in% c('ilu','merged'), '10m', depth)) %>%
   unite("sqanti_summary", assembler, depth, sep = '_', remove = F) 
 
 df_list <- split(df, list( df$assembler, df$depth, df$quant), drop = T)
@@ -54,23 +57,49 @@ df_list <- split(df, list( df$assembler, df$depth, df$quant), drop = T)
 
 all_quant <- lapply(df_list, function(df){
   
-  quant_summary <- lapply(1:6, function(x){
+  if (nrow(df) == 6) {
+    print('Long/short')
+    quant_summary <- lapply(1:6, function(x){
+      
+      counts <- tximport(df[x,'path'], 
+                         type = "salmon", 
+                         txOut = T)
+      
+      counts <- data.frame(counts = counts$counts[,1], 
+                           isoform = rownames(counts$counts))
+      
+      quant <- quantile_overlap(sqanti_summary[[df[x,'sqanti_summary']]], 
+                                counts, 'isoform', requested_counts)
+      
+    })
+  } else if (nrow(df) == 12) {
     
-    counts <- tximport(df[x,'path'], 
-                       type = "salmon", 
-                       txOut = T)
+    print('Hybrid')
     
-    counts <- data.frame(counts = counts$counts[,1], 
-                         isoform = rownames(counts$counts))
-    
-    quant <- quantile_overlap(sqanti_summary[[df[x,'sqanti_summary']]], 
-                              counts, 'isoform', requested_counts)
-    
-  })
+    quant_summary <- lapply(1:6, function(x){
+      # long read
+      counts1 <- tximport(df[x,'path'], 
+                          type = "salmon", 
+                          txOut = T)
+      # short read
+      counts2 <- tximport(df[x+6,'path'], 
+                          type = "salmon", 
+                          txOut = T)
+      
+      stopifnot(all.equal(rownames(counts1$counts), rownames(counts2$counts)))
+      
+      counts <- data.frame(counts = counts1$counts[,1] + counts2$counts[,1], 
+                           isoform = rownames(counts1$counts))
+      
+      quant <- quantile_overlap(sqanti_summary[[df[x,'sqanti_summary']]], 
+                                counts, 'isoform', requested_counts)
+      
+    })
+  }
   
   tx_exp_tiled <- lapply(quant_summary, function(x) {
     data.frame(tx = rownames(x$lcpm_tx),
-               assemble_cpm.max = x$lcpm_tx$assemble_cpm.max, # take max if multiple de novo tx match to 1 ref tx
+               assemble_cpm = x$lcpm_tx$assemble_cpm.max, # take max if multiple de novo tx match to 1 ref tx
                counts.max = x$lcpm_tx$counts.max)
   }) %>% rbindlist()
   
@@ -122,13 +151,13 @@ truecpm_tx <- log2(tx_counts_bambu$counts + 1)[txorder, ] %>%
   as.matrix() %>%
   c()
 
-# 
-# cor(all_quant$rattle.10m.pri$tx_exp_tiled$assemble_cpm, truecpm_tx)
-
-# calculate correlation with or withou sequin
+# calculate correlation with or without sequin
 gene_sequin <- grep('^R', all_quant$rattle.10m.pri$gene_exp_tiled$gene)
 tx_sequin <- grep('^R', all_quant$rattle.10m.pri$tx_exp_tiled$tx)
   
+stopifnot(length(unique(lapply(all_quant, function(x) rownames(x$tx_exp_tiled)))) == 1)
+stopifnot(length(unique(lapply(all_quant, function(x) rownames(x$gene_exp_tiled)))) == 1)
+
 cor_noseq <- lapply(all_quant, function(x){
   cor.tx <- cor(x$tx_exp_tiled$assemble_cpm[-tx_sequin], truecpm_tx)
   cor.gene <- cor(x$gene_exp_tiled$assemble_cpm[-gene_sequin], truecpm_gene)

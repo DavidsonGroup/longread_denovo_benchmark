@@ -11,11 +11,11 @@ source("~/lab_davidson/yan.a/software/scripts_denovo/R/get_cluster_exp.R")
 source("~/lab_davidson/yan.a/software/scripts_denovo/R/calculate_denovo_cluster.R")
 
 # set plotting parameters
-cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-cols <- cbPalette[c(1,2,6,4,7,8)]
-names(cols) <- c('ref','bambu','isonform','rattle','rnabloom2','trinity')
-shapes <- c(15,15,16,17,17,17)
-names(shapes) <- c('ref','bambu','corset','isonclust','rattle','trinity')
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#c51b8a")
+cols <- cbPalette[c(1,2,6,4,7,8, 3,5,9)]
+names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
+shapes <- c(15,15,16,17,17,17,17,17,17)
+names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
 
 files <- list.files('.', pattern = 'summary.rds', recursive = T) 
 files <- files[grepl('m/', files)]
@@ -44,7 +44,7 @@ lapply(names(filelist), function(x){
   facet_grid(clustering~assembler) + 
   ylab('Number of de novo clusters') +
   guides(fill=guide_legend(nrow=2, byrow=TRUE)) 
-ggsave('plot/pct_denovocluster_with_genes.pdf', width = 8, height = 8)
+ggsave('plot/pct_denovocluster_with_genes.pdf', width = 10, height = 8)
 
 lapply(names(filelist), function(x){
   filelist[[x]]$pure_known %>% 
@@ -65,7 +65,7 @@ lapply(names(filelist), function(x){
   facet_grid(clustering~assembler) + 
   ylab('Number of genes') +
   guides(fill=guide_legend(nrow=2, byrow=TRUE)) 
-ggsave('plot/pct_genes_with_denovoclusters.pdf', width = 8, height = 8)
+ggsave('plot/pct_genes_with_denovoclusters.pdf', width = 10, height = 8)
 
 ## would not change even if we changed the minimap2 paramters, because previously novel transcript (without txid) are still in the correct and same gene
 # note the evaluation set is not identical here, and can not use intersection to get a shared evaluation set
@@ -205,7 +205,7 @@ lapply(filelist, function(x) {
 # remove bambu clsuter results from list
 # filelist_denovo <- filelist[-c(1:3)]
 
-salmon_count <- readRDS('plot/salmon_count.rds')
+salmon_count <- readRDS('plot/salmon_count_tmp.rds')
 requested_counts <- readRDS('plot/requested_counts.rds')
 
 # map the quant and clustering
@@ -215,9 +215,10 @@ df1 <- data.frame(cluster_file = names(filelist)) %>%
 
 df2 <- data.frame(quant_file = names(salmon_count)) %>%
   separate(quant_file, c(NA, 'depth', NA, 'assembler', 'quant'), remove = F) %>%
-  filter(quant %in% c('onts','map') | assembler == 'bambu') %>%
+  filter(quant %in% c('onts','map', 'sum') | assembler == 'bambu') %>%
   unite(dataset, 'assembler','depth')
-df2$dataset[12] <- 'trinity_10m'
+
+df2$dataset[15:17] <- c('trinity_10m', 'rnabloom2hybrid_10m', 'rnaspades_10m')
 
 df1 <- df1 %>%
   left_join(df2, 'dataset') %>%
@@ -291,7 +292,7 @@ cor1 <- full_join(cor.corset, cor.native,
 cor2 <- read.csv('plot/cor.csv')
 cor2 <- left_join(cor2 %>% 
                 unite(dataset, 'assembler','depth', remove = F) %>%
-                filter(quant %in% c('onts', 'map') | assembler == 'bambu') %>%
+                filter(quant %in% c('onts', 'map','sum') | assembler == 'bambu') %>%
                 select(c(2,3,4,6)),
               cor2 %>%   
                 unite(dataset, 'assembler','depth', remove = F) %>%
@@ -339,69 +340,69 @@ ggsave('plot/cor_exp_tx.pdf', width = 10, height = 3)
 
 # for sequin cluster correlation
 
-all.sequin <- lapply(1:nrow(df1), function(x) {
-  res1 <- get_cluster_exp(salmon_count[[df1$quant_file[x]]], 
-                          filelist[[df1$cluster_file[x]]],
-                          requested_counts = requested_counts %>% filter(str_detect(transcript_id, '^R')))
-  
-  res2 <- get_cluster_exp(salmon_count[[df1$quant_file2[x]]], 
-                          filelist[[df1$cluster_file[x]]],
-                          requested_counts = requested_counts %>% filter(str_detect(transcript_id, '^R')))
-  
-  list(sec=res1, pri=res2)
-})
-names(all.sequin) <- df1$cluster_file
-
-cor.sec.sum <- sapply(all.sequin, function(x) {
-  cor(x$sec[, c('logbambu', 'logassigned_sum')])[1,2]
-}, simplify = T) 
-cor.sec.max <- sapply(all.sequin, function(x) {
-  cor(x$sec[, c('logbambu', 'logassigned_max')])[1,2]
-}, simplify = T) 
-cor.pri.sum <- sapply(all.sequin, function(x) {
-  cor(x$pri[, c('logbambu', 'logassigned_sum')])[1,2]
-}, simplify = T) 
-cor.pri.max <- sapply(all.sequin, function(x) {
-  cor(x$pri[, c('logbambu', 'logassigned_max')])[1,2]
-}, simplify = T) 
-
-cor.sequin <- data.frame(cluster_file = names(all),
-                  cor.sec.sum = cor.sec.sum, cor.sec.max = cor.sec.max, 
-                  cor.pri.sum = cor.pri.sum, cor.pri.max = cor.pri.max) %>%
-  separate(cluster_file, c('assembler','clustering','depth'), remove = F) %>%
-  unite(dataset, 'assembler','depth', remove = F)
-
-write.csv(cor.sequin, 'plot/cor_cluster_sequin.csv')
-
-cor.corset <- cor.sequin %>% filter(clustering == 'corset')
-cor.native <- cor.sequin %>% filter(clustering != 'corset')
-
-cor1 <- full_join(cor.corset, cor.native,
-                  by = c('dataset', 'assembler', 'depth'), 
-                  suffix = c('.corset', '.native'))
-
-cor2 <- readRDS('plot/sequin_cor.rds')
-
-cor2 <- data.frame(gene_cor_a = sapply(cor2[grep('mix_a', names(cor2))], function(x) x$cor.gene['logA'], simplify = T),
-           gene_cor_b = sapply(cor2[grep('mix_b', names(cor2))], function(x) x$cor.gene['logB'], simplify = T),
-           tx_cor_a = sapply(cor2[grep('mix_a', names(cor2))], function(x) x$cor.tx['logA'], simplify = T),
-           tx_cor_b = sapply(cor2[grep('mix_b', names(cor2))], function(x) x$cor.tx['logB'], simplify = T)) %>%
-  rownames_to_column() %>% 
-  separate(rowname, c('quant', 'mix', 'depth', 'assembler', 'log'), sep = '\\.')
-
-cor2 <- left_join(cor2 %>% 
-                    unite(dataset, 'assembler','depth', remove = F) %>%
-                    filter(quant %in% c('onts', 'map') | assembler == 'bambu') %>%
-                    select(-c(2,6)),
-                  cor2 %>%   
-                    unite(dataset, 'assembler','depth', remove = F) %>%
-                    filter(quant %in% c('ontp', 'align') | assembler == 'bambu') %>% 
-                    select(-c(2,6)), by = 'dataset',
-                  suffix = c('.sec', '.pri')) 
-
-cor.final.sequin <- left_join(cor1, cor2, 
-                       by = 'dataset')
-write.csv(cor.final.sequin, 'plot/cor_finalcombined_sequin.csv')
+# all.sequin <- lapply(1:nrow(df1), function(x) {
+#   res1 <- get_cluster_exp(salmon_count[[df1$quant_file[x]]], 
+#                           filelist[[df1$cluster_file[x]]],
+#                           requested_counts = requested_counts %>% filter(str_detect(transcript_id, '^R')))
+#   
+#   res2 <- get_cluster_exp(salmon_count[[df1$quant_file2[x]]], 
+#                           filelist[[df1$cluster_file[x]]],
+#                           requested_counts = requested_counts %>% filter(str_detect(transcript_id, '^R')))
+#   
+#   list(sec=res1, pri=res2)
+# })
+# names(all.sequin) <- df1$cluster_file
+# 
+# cor.sec.sum <- sapply(all.sequin, function(x) {
+#   cor(x$sec[, c('logbambu', 'logassigned_sum')])[1,2]
+# }, simplify = T) 
+# cor.sec.max <- sapply(all.sequin, function(x) {
+#   cor(x$sec[, c('logbambu', 'logassigned_max')])[1,2]
+# }, simplify = T) 
+# cor.pri.sum <- sapply(all.sequin, function(x) {
+#   cor(x$pri[, c('logbambu', 'logassigned_sum')])[1,2]
+# }, simplify = T) 
+# cor.pri.max <- sapply(all.sequin, function(x) {
+#   cor(x$pri[, c('logbambu', 'logassigned_max')])[1,2]
+# }, simplify = T) 
+# 
+# cor.sequin <- data.frame(cluster_file = names(all),
+#                   cor.sec.sum = cor.sec.sum, cor.sec.max = cor.sec.max, 
+#                   cor.pri.sum = cor.pri.sum, cor.pri.max = cor.pri.max) %>%
+#   separate(cluster_file, c('assembler','clustering','depth'), remove = F) %>%
+#   unite(dataset, 'assembler','depth', remove = F)
+# 
+# write.csv(cor.sequin, 'plot/cor_cluster_sequin.csv')
+# 
+# cor.corset <- cor.sequin %>% filter(clustering == 'corset')
+# cor.native <- cor.sequin %>% filter(clustering != 'corset')
+# 
+# cor1 <- full_join(cor.corset, cor.native,
+#                   by = c('dataset', 'assembler', 'depth'), 
+#                   suffix = c('.corset', '.native'))
+# 
+# cor2 <- readRDS('plot/sequin_cor.rds')
+# 
+# cor2 <- data.frame(gene_cor_a = sapply(cor2[grep('mix_a', names(cor2))], function(x) x$cor.gene['logA'], simplify = T),
+#            gene_cor_b = sapply(cor2[grep('mix_b', names(cor2))], function(x) x$cor.gene['logB'], simplify = T),
+#            tx_cor_a = sapply(cor2[grep('mix_a', names(cor2))], function(x) x$cor.tx['logA'], simplify = T),
+#            tx_cor_b = sapply(cor2[grep('mix_b', names(cor2))], function(x) x$cor.tx['logB'], simplify = T)) %>%
+#   rownames_to_column() %>% 
+#   separate(rowname, c('quant', 'mix', 'depth', 'assembler', 'log'), sep = '\\.')
+# 
+# cor2 <- left_join(cor2 %>% 
+#                     unite(dataset, 'assembler','depth', remove = F) %>%
+#                     filter(quant %in% c('onts', 'map') | assembler == 'bambu') %>%
+#                     select(-c(2,6)),
+#                   cor2 %>%   
+#                     unite(dataset, 'assembler','depth', remove = F) %>%
+#                     filter(quant %in% c('ontp', 'align') | assembler == 'bambu') %>% 
+#                     select(-c(2,6)), by = 'dataset',
+#                   suffix = c('.sec', '.pri')) 
+# 
+# cor.final.sequin <- left_join(cor1, cor2, 
+#                        by = 'dataset')
+# write.csv(cor.final.sequin, 'plot/cor_finalcombined_sequin.csv')
 
 
 ## calculating f1 on shared tx onnly
@@ -415,9 +416,10 @@ tx_union <- lapply(sqanti_summary, function(x){
   filter(!str_detect(associated_transcript, '^novel') & !is.na(associated_transcript) & !str_detect(associated_gene, '_') & !str_detect(associated_transcript, '^R')) %>%
   unique()
 
-feature_count <- upset_sqanti(sqanti_summary[c(1,5,6,9,12)], featuretype = 'transcript', 
-                              subcat = 'all', names = names(sqanti_summary)[c(1,5,6,9,12)])
-ncol <- length(sqanti_summary[c(1,5,6,9,12)])
+# all 10 assemblies (isoform 5m)
+feature_count <- upset_sqanti(sqanti_summary[c(3,6,8,11,14:17)], featuretype = 'transcript', 
+                              subcat = 'all', names = names(sqanti_summary)[c(3,6,8,11,14:17)])
+ncol <- length(sqanti_summary[c(3,6,8,11,14:17)])
 
 subset_gt4 <- tx_union %>% 
   filter(associated_transcript %in% rownames(feature_count)[rowSums(feature_count)>=(ncol-1)])
@@ -454,9 +456,9 @@ tx_union <- lapply(sqanti_summary, function(x){
   filter(str_detect(associated_transcript, '^R')) %>%
   unique()
 
-feature_count <- upset_sqanti(sqanti_summary[c(1,5,6,9,12)], featuretype = 'transcript', 
-                              subcat = 'all', names = names(sqanti_summary)[c(1,5,6,9,12)])
-ncol <- length(sqanti_summary[c(1,5,6,9,12)])
+feature_count <- upset_sqanti(sqanti_summary[c(3,6,8,11,14:17)], featuretype = 'transcript', 
+                              subcat = 'all', names = names(sqanti_summary)[c(3,6,8,11,14:17)])
+ncol <- length(sqanti_summary[c(3,6,8,11,14:17)])
 
 subset_gt4 <- tx_union %>% 
   filter(associated_transcript %in% rownames(feature_count)[rowSums(feature_count)>=(ncol-1)])
@@ -488,7 +490,14 @@ lapply(names(filelist), function(x) {
 
 # calculate redundancy of de novo clusters
 
-sqanti_summary_tmp <- sqanti_summary[c(1:3, rep(4:8, each = 2), 9:11, 12,12)]
+sqanti_summary_tmp <- sqanti_summary[c('bambu_10m', 'bambu_2m','bambu_5m',
+                                       rep(c('bambudenovo_10m', 'bambudenovo_2m','bambudenovo_5m'), each = 2),
+                                       rep(c('isonform_2m','isonform_5m'), each = 2), 
+                                       rep(c('rattle_10m','rattle_2m','rattle_5m'), each = 3),
+                                       rep(c('rnabloom2_10m','rnabloom2_2m','rnabloom2_5m'), each = 2), 
+                                       rep('trinity_10m', 2),
+                                       rep('rnabloom2hybrid_10m',1), 
+                                       rep('rnaspades_10m',1))]
 
 cnt.list <- lapply(1:length(filelist), function(x) {
   calculate_denovo_cluster(cluster_summary = filelist[[x]], 

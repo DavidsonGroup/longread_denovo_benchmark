@@ -58,7 +58,7 @@ dirs <- dirs[str_detect(dirs, '/x') & !str_detect(dirs, 'bk')]
 df <- data.frame(path = dirs) 
 
 df$path2 <- df$path  
-df$path2[15] <- c('bambu_bambu_count/x.rds')
+df$path2[22] <- c('bambu_bambu_count/x.rds')
 
 df <- df %>%
   separate(path2, c('assembler', 'clustering', 'quant', NA), remove = F, sep = '_|/') %>%

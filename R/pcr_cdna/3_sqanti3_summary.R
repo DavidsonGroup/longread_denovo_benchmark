@@ -17,11 +17,11 @@ source('~/lab_davidson/yan.a/software/scripts_denovo/R/upset_sqanti.R')
 source("~/lab_davidson/yan.a/software/scripts_denovo/R/quantile_overlap.R")
 
 # set plotting parameters
-cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-cols <- cbPalette[c(1,2,6,4,7,8)]
-names(cols) <- c('ref','bambu','isonform','rattle','rnabloom2','trinity')
-shapes <- c(15,15,16,17,17,17)
-names(shapes) <- c('ref','bambu','corset','isonclust','rattle','trinity')
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#c51b8a")
+cols <- cbPalette[c(1,2,6,4,7,8, 3,5,9)]
+names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
+shapes <- c(15,15,16,17,17,17,17,17,17)
+names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
 
 col_sqanti <- c(hue_pal()(3), rep(hue_pal()(3)[1], 2), rep(hue_pal()(3)[2], 2), rep(hue_pal()(3)[3], 5))
 names(col_sqanti) <- c("Annotated","Novel","Sequin" ,
@@ -35,10 +35,13 @@ col_sqanti <- col_sqanti[c(2,1,3, 8:12,6:7,4:5)]
 args <- commandArgs(trailingOnly=TRUE)
 
 args <- c('../bambu/',
+          '../bambudenovo/',
           '../rattle/', 
           '../rnabloom2/',
           '../isonform/',
-          '../trinitystranded/'
+          '../trinitystranded/',
+          '../rnaspades/',
+          '../rnabloom2hybrid/'
 )
 
 dirs <- list.dirs(args, recursive = F, full.names = T)
@@ -52,10 +55,20 @@ sqanti_summary <- lapply(sqanti_files, function(x) {
   dplyr::mutate(original = ifelse(str_detect(isoform, '_dup'), str_remove(isoform, '_dup.*'), isoform))
 })
 names(sqanti_summary) <- c('bambu_10m','bambu_2m','bambu_5m',
+                           'bambudenovo_10m','bambudenovo_2m','bambudenovo_5m',
                            'isonform_2m','isonform_5m',
                            'rattle_10m','rattle_2m','rattle_5m',
                            'rnabloom2_10m','rnabloom2_2m','rnabloom2_5m',
+                           'rnabloom2hybrid_10m','rnaspades_10m',
                            'trinity_10m')
+# reorder
+sqanti_summary <- sqanti_summary[c('bambu_2m','bambu_5m','bambu_10m',
+                                   'bambudenovo_2m','bambudenovo_5m','bambudenovo_10m',
+                                   'isonform_2m','isonform_5m',
+                                   'rattle_2m','rattle_5m','rattle_10m',
+                                   'rnabloom2_2m','rnabloom2_5m','rnabloom2_10m',
+                                   'rnabloom2hybrid_10m','rnaspades_10m',
+                                   'trinity_10m')]
 
 ## need to fix errors in bambu sqanti3 annotation?
 
@@ -158,7 +171,7 @@ colnames(num_gene_per_chr_uniq)[-1] <- names(sqanti_summary)
 
 num_gene_per_chr_uniq %>%
   pivot_longer(-1) %>%
-  mutate(name = factor(name, levels = names(sqanti_summary)[c(2,3,1,7,8,6,4,5,10,11,9,12)])) %>%
+  mutate(name = factor(name, levels = names(sqanti_summary))) %>%
   separate(name, c('assembler','depth'), remove = F) %>%
   mutate(depth = factor(depth, levels = c('2m','5m','10m'))) %>%
   ggplot(aes(x=name, y=value, fill = type)) +
@@ -172,7 +185,7 @@ ggsave('plot/sqanti_num_uniq_gene.pdf', width = 10, height = 4)
 
 num_tx_per_chr_uniq %>%
   pivot_longer(-1) %>%
-  mutate(name = factor(name, levels = names(sqanti_summary)[c(2,3,1,7,8,6,4,5,10,11,9,12)])) %>%
+  mutate(name = factor(name, levels = names(sqanti_summary))) %>%
   separate(name, c('assembler','depth'), remove = F) %>%
   mutate(depth = factor(depth, levels = c('2m','5m','10m'))) %>%
   ggplot(aes(x=name, y=value, fill = type)) +
@@ -277,7 +290,7 @@ write.csv(sum_df, 'plot/sum_df.csv')
 
 sum_df %>% 
   pivot_longer(-(1:2)) %>%
-  mutate(name = factor(name, levels = names(sqanti_summary)[c(2,3,1,7,8,6,4,5,10,11,9,12)])) %>%
+  mutate(name = factor(name, levels = names(sqanti_summary))) %>%
   separate(name, c('assembler','depth'), remove = F) %>%
   mutate(category = factor(category, levels = names(col_sqanti)), # reorder
          depth = factor(depth, levels = c('2m','5m','10m'))) %>%
@@ -292,7 +305,7 @@ ggsave('plot/sqanti_summary_count.pdf', width = 10, height = 4)
 
 sum_df %>% 
   pivot_longer(-(1:2)) %>%
-  mutate(name = factor(name, levels = names(sqanti_summary)[c(2,3,1,7,8,6,4,5,10,11,9,12)])) %>%
+  mutate(name = factor(name, levels = names(sqanti_summary))) %>%
   separate(name, c('assembler','depth'), remove = F) %>%
   mutate(category = factor(category, levels = names(col_sqanti)),
          depth = factor(depth, levels = c('2m','5m','10m'))) %>%
@@ -306,7 +319,7 @@ ggsave('plot/sqanti_summary_count_simplified.pdf', width = 8, height = 3)
 
 sum_df %>% 
   pivot_longer(-(1:2)) %>%
-  mutate(name = factor(name, levels = names(sqanti_summary)[c(2,3,1,7,8,6,4,5,10,11,9,12)])) %>%
+  mutate(name = factor(name, levels = names(sqanti_summary))) %>%
   separate(name, c('assembler','depth'), remove = F) %>%
   mutate(category = factor(category, levels = names(col_sqanti)),
          depth = factor(depth, levels = c('2m','5m','10m'))) %>%
@@ -343,7 +356,7 @@ write.csv(sum_df_sequin, 'plot/sum_df_sequin.csv')
 
 sum_df_sequin %>% 
   pivot_longer(-(1:2)) %>%
-  mutate(name = factor(name, levels = names(sqanti_summary)[c(2,3,1,7,8,6,4,5,10,11,9,12)])) %>%
+  mutate(name = factor(name, levels = names(sqanti_summary))) %>%
   separate(name, c('assembler','depth'), remove = F) %>%
   mutate(category = factor(category, levels = names(col_sqanti)),
          depth = factor(depth, levels = c('2m','5m','10m'))) %>%
@@ -358,7 +371,7 @@ ggsave('plot/sqanti_summary_count_sequin.pdf', width = 10, height = 4)
 
 sum_df_sequin %>% 
   pivot_longer(-(1:2)) %>%
-  mutate(name = factor(name, levels = names(sqanti_summary)[c(2,3,1,7,8,6,4,5,10,11,9,12)])) %>%
+  mutate(name = factor(name, levels = names(sqanti_summary))) %>%
   separate(name, c('assembler','depth'), remove = F) %>%
   mutate(category = factor(category, levels = names(col_sqanti)),
          depth = factor(depth, levels = c('2m','5m','10m'))) %>%
@@ -372,7 +385,7 @@ ggsave('plot/sqanti_summary_count_sequin_simplified.pdf', width = 8, height = 3)
 
 sum_df_sequin %>% 
   pivot_longer(-(1:2)) %>%
-  mutate(name = factor(name, levels = names(sqanti_summary)[c(2,3,1,7,8,6,4,5,10,11,9,12)])) %>%
+  mutate(name = factor(name, levels = names(sqanti_summary))) %>%
   separate(name, c('assembler','depth'), remove = F) %>%
   mutate(category = factor(category, levels = names(col_sqanti)),
          depth = factor(depth, levels = c('2m','5m','10m'))) %>%
@@ -410,7 +423,7 @@ write.csv(sum_df_nosequin, 'plot/sum_df_nosequin.csv')
 
 sum_df_nosequin %>% 
   pivot_longer(-(1:2)) %>%
-  mutate(name = factor(name, levels = names(sqanti_summary)[c(2,3,1,7,8,6,4,5,10,11,9,12)])) %>%
+  mutate(name = factor(name, levels = names(sqanti_summary))) %>%
   separate(name, c('assembler','depth'), remove = F) %>%
   mutate(category = factor(category, levels = names(col_sqanti)),
          depth = factor(depth, levels = c('2m','5m','10m'))) %>%
@@ -425,7 +438,7 @@ ggsave('plot/sqanti_summary_count_nosequin.pdf', width = 10, height = 4)
 
 sum_df_nosequin %>% 
   pivot_longer(-(1:2)) %>%
-  mutate(name = factor(name, levels = names(sqanti_summary)[c(2,3,1,7,8,6,4,5,10,11,9,12)])) %>%
+  mutate(name = factor(name, levels = names(sqanti_summary))) %>%
   separate(name, c('assembler','depth'), remove = F) %>%
   mutate(category = factor(category, levels = names(col_sqanti)),
          depth = factor(depth, levels = c('2m','5m','10m'))) %>%
@@ -439,7 +452,7 @@ ggsave('plot/sqanti_summary_count_nosequin_simplified.pdf', width = 8, height = 
 
 sum_df_nosequin %>% 
   pivot_longer(-(1:2)) %>%
-  mutate(name = factor(name, levels = names(sqanti_summary)[c(2,3,1,7,8,6,4,5,10,11,9,12)])) %>%
+  mutate(name = factor(name, levels = names(sqanti_summary))) %>%
   separate(name, c('assembler','depth'), remove = F) %>%
   mutate(category = factor(category, levels = names(col_sqanti)),
          depth = factor(depth, levels = c('2m','5m','10m'))) %>%
@@ -451,40 +464,56 @@ sum_df_nosequin %>%
 ggsave('plot/sqanti_summary_pct_nosequin.pdf', width = 10, height = 4)
 
 
-pdf('plot/sqanti_upset.pdf', width = 6, height = 4)
+pdf('plot/sqanti_upset.pdf', width = 8, height = 4)
 
 ## only overlap of know/annotated transcripts and genes
-## 10m
-upset_sqanti(sqanti_summary[c(1,6,9,12)], subcat = 'all', 
-             names = names(sqanti_summary)[c(1,6,9,12)] , featuretype = 'gene') %>%
+## bambudenovo
+upset_sqanti(sqanti_summary[c(3,4:6)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,4:6)] , featuretype = 'gene') %>%
   upset(nsets = 4, order.by = 'freq', set_size.show = T, set_size.scale_max = 40000)
-upset_sqanti(sqanti_summary[c(1,6,9,12)], subcat = 'all', 
-             names = names(sqanti_summary)[c(1,6,9,12)] , featuretype = 'transcript') %>%
+upset_sqanti(sqanti_summary[c(3,4:6)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,4:6)] , featuretype = 'transcript') %>%
   upset(nsets = 4, order.by = 'freq', set_size.show = T, set_size.scale_max = 120000)
 
+## isoform
+upset_sqanti(sqanti_summary[c(3,7:8)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,7:8)] , featuretype = 'gene') %>%
+  upset(nsets = 3, order.by = 'freq', set_size.show = T, set_size.scale_max = 40000)
+upset_sqanti(sqanti_summary[c(3,7:8)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,7:8)] , featuretype = 'transcript') %>%
+  upset(nsets = 3, order.by = 'freq', set_size.show = T, set_size.scale_max = 120000)
+
 ## rattle
-upset_sqanti(sqanti_summary[c(1,6:8)], subcat = 'all', 
-             names = names(sqanti_summary)[c(1,6:8)] , featuretype = 'gene') %>%
+upset_sqanti(sqanti_summary[c(3,9:11)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,9:11)] , featuretype = 'gene') %>%
   upset(nsets = 4, order.by = 'freq', set_size.show = T, set_size.scale_max = 40000)
-upset_sqanti(sqanti_summary[c(1,6:8)], subcat = 'all', 
-             names = names(sqanti_summary)[c(1,6:8)] , featuretype = 'transcript') %>%
+upset_sqanti(sqanti_summary[c(3,9:11)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,9:11)] , featuretype = 'transcript') %>%
   upset(nsets = 4, order.by = 'freq', set_size.show = T, set_size.scale_max = 120000)
 
 ## rnabloom2
-upset_sqanti(sqanti_summary[c(1,9:11)], subcat = 'all', 
-             names = names(sqanti_summary)[c(1,9:11)] , featuretype = 'gene') %>%
-  upset(nsets = 4, order.by = 'freq', set_size.show = T, set_size.scale_max = 40000)
-upset_sqanti(sqanti_summary[c(1,9:11)], subcat = 'all', 
-             names = names(sqanti_summary)[c(1,9:11)] , featuretype = 'transcript') %>%
-  upset(nsets = 4, order.by = 'freq', set_size.show = T, set_size.scale_max = 120000)
+upset_sqanti(sqanti_summary[c(3,12:15)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,12:15)] , featuretype = 'gene') %>%
+  upset(nsets = 5, order.by = 'freq', set_size.show = T, set_size.scale_max = 40000)
+upset_sqanti(sqanti_summary[c(3,12:15)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,12:15)] , featuretype = 'transcript') %>%
+  upset(nsets = 5, order.by = 'freq', set_size.show = T, set_size.scale_max = 120000)
 
-## isonform
-upset_sqanti(sqanti_summary[c(1,2,4:5)], subcat = 'all', 
-             names = names(sqanti_summary)[c(1,2,4:5)] , featuretype = 'gene') %>%
-  upset(nsets = 4, order.by = 'freq', set_size.show = T, set_size.scale_max = 40000)
-upset_sqanti(sqanti_summary[c(1,2,4:5)], subcat = 'all', 
-             names = names(sqanti_summary)[c(1,2,4:5)] , featuretype = 'transcript') %>%
-  upset(nsets = 4, order.by = 'freq', set_size.show = T, set_size.scale_max = 120000)
+# short
+upset_sqanti(sqanti_summary[c(3,16,17)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,16,17)] , featuretype = 'gene') %>%
+  upset(nsets = 3, order.by = 'freq', set_size.show = T, set_size.scale_max = 40000)
+upset_sqanti(sqanti_summary[c(3,16,17)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,16,17)] , featuretype = 'transcript') %>%
+  upset(nsets = 3, order.by = 'freq', set_size.show = T, set_size.scale_max = 120000)
+
+# 10m
+upset_sqanti(sqanti_summary[c(3,6,11,14:17)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,6,11,14:17)] , featuretype = 'gene') %>%
+  upset(nsets = 7, order.by = 'freq', set_size.show = T, set_size.scale_max = 40000)
+upset_sqanti(sqanti_summary[c(3,6,11,14:17)], subcat = 'all', 
+             names = names(sqanti_summary)[c(3,6,11,14:17)] , featuretype = 'transcript') %>%
+  upset(nsets = 7, order.by = 'freq', set_size.show = T, set_size.scale_max = 120000)
 
 dev.off()
 
@@ -564,23 +593,47 @@ saveRDS(requested_counts, 'plot/requested_counts.rds')
 
 ## use Salmon expression for all assembly, compared to Bambu expression
 
-sqanti_summary_tmp <- sqanti_summary[c(1:3, # bambu,
-                                       rep(4:5, each = 2), rep(6:8, each = 3), rep(9:12, each = 2))]
+# sqanti_summary_tmp <- sqanti_summary[c(1:3, # bambu,
+#                                        rep(4:5, each = 2), rep(6:8, each = 3), rep(9:12, each = 2))]
+# 
+# quant_summary <- list() 
 
 quant_summary <- list() 
 
+salmon_count_tmp <- salmon_count[c(1:28,37:38)]
+
+# sum up hybrid mode
+salmon_count_tmp[['hybrid_merged_quant_rnabloom2hybrid_sum']] <- salmon_count[['hybrid_merged_quant_rnabloom2hybrid_onts']]
+salmon_count_tmp[['hybrid_merged_quant_rnabloom2hybrid_sum']]$counts <- salmon_count[['hybrid_merged_quant_rnabloom2hybrid_onts']]$counts + salmon_count[['hybrid_merged_quant_rnabloom2hybrid_map']]$counts
+
+salmon_count_tmp[['hybrid_merged_quant_rnaspades_sum']] <- salmon_count[['hybrid_merged_quant_rnaspades_onts']]
+salmon_count_tmp[['hybrid_merged_quant_rnaspades_sum']]$counts <- salmon_count[['hybrid_merged_quant_rnaspades_onts']]$counts + salmon_count[['hybrid_merged_quant_rnaspades_map']]$counts
+
+saveRDS(salmon_count_tmp, 'plot/salmon_count_tmp.rds')
+
+sqanti_summary_tmp <- sqanti_summary[c('bambu_10m', 'bambu_2m','bambu_5m',
+                                       rep(c('bambudenovo_10m', 'bambudenovo_2m','bambudenovo_5m'), each = 2),
+                                       rep(c('isonform_2m','isonform_5m'), each = 2), 
+                                       rep(c('rattle_10m','rattle_2m','rattle_5m'), each = 3),
+                                       rep(c('rnabloom2_10m','rnabloom2_2m','rnabloom2_5m'), each = 2), 
+                                       rep('trinity_10m', 2),
+                                       rep('rnabloom2hybrid_10m',1), 
+                                       rep('rnaspades_10m',1))]
+
 # for bambu, ONT and Ilu
-quant_summary[1:24] <- lapply(1:24, function(x){
+quant_summary[1:32] <- lapply(1:32, function(x){
   
-  title <- names(salmon_count)[x]
+  title <- names(salmon_count_tmp)[x]
   print(title)
+  print(names(sqanti_summary_tmp)[x])
   
-  quantile_overlap(sqanti_summary_tmp[[x]], salmon_count[[x]], title, 
+  quantile_overlap(sqanti_summary_tmp[[x]], salmon_count_tmp[[x]], title, 
                    requested_counts)
   
 })
 
-names(quant_summary) <- names(salmon_count) %>% str_replace_all(., 'ilu','10m') %>%
+names(quant_summary) <- names(salmon_count_tmp) %>% str_replace_all(., 'ilu','10m') %>%
+  str_replace_all(., '_merged_','_10m_') %>% 
   str_replace_all(., 'trinitystranded','trinity')
 
 # logcpm bin level
@@ -599,7 +652,7 @@ quant_summary_cpm_recov <- lapply(quant_summary, function(x){
   mutate(depth = factor(depth, levels = c('2m','5m','10m')))
 
 quant_summary_cpm_recov %>% 
-  filter(quant %in% c('onts', 'map', 'count')) %>%
+  filter(quant %in% c('onts', 'map', 'count','sum')) %>%
   ggplot(aes(x = truecpm_bins, y = ProportionQuantified, color = assembler)) +
   geom_point(aes(shape = depth, size = 1)) + 
   geom_line(aes(group = method)) +
@@ -615,7 +668,7 @@ quant_summary_cpm_recov %>%
   facet_grid(assembler~depth) +
   ylim(c(0,1)) + 
   xlab('log2(CPM+1) bins from Bambu in 10 million data')
-ggsave('plot/quant_summary_bin_lineplot_facet.pdf', width = 10, height = 8)
+ggsave('plot/quant_summary_bin_lineplot_facet.pdf', width = 10, height = 10)
 
 # count quantiles (same as cpm quantile, but show the value in raw counts)
 quant_summary_quantile_recov <- lapply(quant_summary, function(x){
@@ -661,7 +714,7 @@ quant_summary_quantile_recov_all <- lapply(quant_summary, function(x){
 write.csv(quant_summary_quantile_recov_all, 'plot/quant_summary_quantile_recov_all.csv')
 
 quant_summary_quantile_recov %>% 
-  filter(quant %in% c('onts', 'map')) %>%
+  filter(quant %in% c('onts', 'map','sum')) %>%
   ggplot(aes(x = truecount_quantile_range, y = ProportionAssembled, color = assembler)) +
   geom_point(aes(shape = depth, size = 1)) + 
   geom_line(aes(group = method)) +
@@ -705,7 +758,7 @@ quant_summary_quantile_recov_sequin <- lapply(quant_summary, function(x){
 write.csv(quant_summary_quantile_recov_sequin, 'plot/quant_summary_quantile_recov_sequin.csv')
 
 quant_summary_quantile_recov_sequin %>% 
-  filter((quant %in% c('onts', 'map')) | (assembler == 'bambu')) %>%
+  filter((quant %in% c('onts', 'map','sum')) | (assembler == 'bambu')) %>%
   ggplot(aes(x = truecount_quantile_range, y = ProportionAssembled, color = assembler)) +
   geom_point(aes(shape = depth, size = 1)) + 
   geom_line(aes(group = method)) +
@@ -740,7 +793,7 @@ quant_summary_quantile_recov2 <- lapply(quant_summary, function(x){
 write.csv(quant_summary_quantile_recov2, 'plot/quant_summary_quantile_recov_gene.csv')
 
 quant_summary_quantile_recov2 %>% 
-  filter(quant %in% c('onts', 'map')) %>%
+  filter(quant %in% c('onts', 'map','sum')) %>%
   ggplot(aes(x = truecount_quantile_range, y = ProportionQuantified, color = assembler)) +
   geom_point(aes(shape = depth, size = 1)) + 
   geom_line(aes(group = method)) +
@@ -774,10 +827,10 @@ quant_summary_quantile_recov_sequin2 <- lapply(quant_summary, function(x){
   mutate(method = rep(names(quant_summary), each = 10)) %>% 
   separate(method, c('1','depth', '2', 'assembler', 'quant'), remove = F, sep = '_') %>%
   mutate(depth = factor(depth, levels = c('2m','5m','10m')))
-write.csv(quant_summary_quantile_recov2, 'plot/quant_summary_quantile_recov_gene_sequin.csv')
+write.csv(quant_summary_quantile_recov_sequin2, 'plot/quant_summary_quantile_recov_gene_sequin.csv')
 
 quant_summary_quantile_recov_sequin2 %>% 
-  filter((quant %in% c('onts', 'map')) | (assembler == 'bambu')) %>%
+  filter((quant %in% c('onts', 'map','sum')) | (assembler == 'bambu')) %>%
   ggplot(aes(x = truecount_quantile_range, y = ProportionQuantified, color = assembler)) +
   geom_point(aes(shape = depth, size = 1)) + 
   geom_line(aes(group = method)) +
@@ -828,7 +881,7 @@ quant_summary_cpm_redun <- lapply(names(quant_summary), function(x){
   mutate(depth = factor(depth, levels = c('2m','5m','10m'))) 
 
 quant_summary_cpm_redun %>%
-  filter(quant %in% c('onts', 'map')#,
+  filter(quant %in% c('onts', 'map','sum')#,
          # redundantAsm > 1#, # remove reference transcripts with unique de novo transcript
   ) %>%
   ggplot(aes(x = truecpm_bins, y = redundantAsm, color = assembler)) +
@@ -842,7 +895,7 @@ quant_summary_cpm_redun %>%
 ggsave('plot/quant_summary_redundancy_bin_boxplot.pdf', width = 8, height = 8)
 
 quant_summary_cpm_redun %>%
-  filter(quant %in% c('onts', 'map') #,
+  filter(quant %in% c('onts', 'map','sum') #,
          # redundantAsm > 1#, # remove reference transcripts with unique de novo transcript
   ) %>%
   ggplot(aes(x = truecount_quantile_range, y = redundantAsm, color = assembler)) +
@@ -868,7 +921,7 @@ lcpm.cor <- data.frame(gene_cor = sapply(quant_summary, function(x) cor(x$lcpm_g
 write.csv(lcpm.cor, 'plot/cor.csv')
 
 lcpm.cor %>%
-  filter(quant %in% c('onts', 'map')) %>%
+  filter(quant %in% c('onts', 'map', 'sum')) %>%
   ggplot(aes(x = assembler, y = gene_cor, color = assembler)) +
   geom_point(aes(shape = depth, size = 1)) + 
   #geom_line(aes(group = assembler)) + 
@@ -878,7 +931,7 @@ lcpm.cor %>%
 ggsave('plot/quant_summary_gene_cor_lineplot.pdf', width = 4, height = 3)
 
 lcpm.cor %>%
-  filter(quant %in% c('onts', 'map')) %>%
+  filter(quant %in% c('onts', 'map','sum')) %>%
   ggplot(aes(x = assembler, y = tx_cor, color = assembler)) +
   geom_point(aes(shape = depth, size = 1)) + 
   # geom_line(aes(group = assembler)) + 
@@ -887,11 +940,10 @@ lcpm.cor %>%
   ylim(c(0,1))
 ggsave('plot/quant_summary_tx_cor_lineplot.pdf', width = 4, height = 3)
 
-
-for (i in names(quant_summary)) {
-  ggsave(paste0('plot/',i,'_quant_summary1.pdf'), plot = quant_summary[[i]]$plot1, width = 8, height = 16)
-  ggsave(paste0('plot/',i,'_quant_summary2.pdf'), plot = quant_summary[[i]]$plot2, width = 8, height = 8)
-}
+# for (i in names(quant_summary)) {
+#   ggsave(paste0('plot/',i,'_quant_summary1.pdf'), plot = quant_summary[[i]]$plot1, width = 8, height = 16)
+#   ggsave(paste0('plot/',i,'_quant_summary2.pdf'), plot = quant_summary[[i]]$plot2, width = 8, height = 8)
+# }
 
 saveRDS(quant_summary, 'plot/quant_summary.rds')
 saveRDS(sqanti_summary, 'plot/sqanti_summary.rds')

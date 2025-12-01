@@ -10,11 +10,11 @@ source('~/lab_davidson/yan.a/software/scripts_denovo/R/get_precision_recall.R')
 source('~/lab_davidson/yan.a/software/scripts_denovo/R/roc.R')
 
 # set plotting parameters
-cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-cols <- cbPalette[c(1,2,6,4,7,8)]
-names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity')
-shapes <- c(15,15,16,17,17,17)
-names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity')
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#c51b8a")
+cols <- cbPalette[c(1,2,6,4,7,8, 3,5,9)]
+names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
+shapes <- c(15,15,16,17,17,17,17,17,17)
+names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
 
 true_dtugene <- readRDS("/vast/projects/davidson_longread/yan.a/simulation_20240501/sqanti_sim/design/true_dtugene.rds")
 true_dge <- readRDS("/vast/projects/davidson_longread/yan.a/simulation_20240501/sqanti_sim/design/true_dge.rds")
@@ -85,7 +85,10 @@ names(test2) <- c(dirname(files.dtugene)[1:(ntest-1)],
 files <- list.files('.', pattern = 'summary.rds', recursive = T)
 files <- files[!grepl('plot', files)]
 
-filelist <- lapply(c(rep(files[-1], each = 2), files[1]), function(x){
+filelist <- lapply(c(rep(files[2:8], each = 2), 
+                     files[9:11], 
+                     rep(files[12:13], each = 2), 
+                     files[1]), function(x){
   readRDS(x) 
 }) # to match the order of DE object
 names(filelist) <- names(test2) 
@@ -209,7 +212,7 @@ dev.off()
 
 plot_pr <- function(delist) {
   
-  df.pr <- sapply(1:16, function(x) {
+  df.pr <- sapply(1:23, function(x) {
     
     get_precision_recall(delist[[1]],
                          delist[[x+1]])
@@ -284,7 +287,7 @@ df_dtutx_dedup <- lapply(names(list),
 
 df_dtutx_all %>%
   separate(method, c('assembler','clustering','quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |
            # For non-trinity assemblers, keep only bambu, sim, or corset clustering
@@ -303,7 +306,7 @@ ggsave('plot/ROC_dtutx_simplified.pdf', width = 7, height = 5)
 
 df_dtutx_dedup %>%
   separate(method, c('assembler','clustering','quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |
            # For non-trinity assemblers, keep only bambu, sim, or corset clustering
@@ -342,7 +345,7 @@ df_dtetx_dedup <- lapply(names(list),
 
 df_dtetx_all %>%
   separate(method, c('assembler','clustering','quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count')) %>% 
+  filter(quant %in% c('map','onts','count','sum')) %>% 
   mutate(lr_denovo = factor(assembler %in% c('trinity','bambu', 'limma'), 
                             labels = c('lr_denovo', 'others'))) %>% 
   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) + 
@@ -357,7 +360,7 @@ ggsave('plot/ROC_dtetx_simplified.pdf', width = 7, height = 5)
 
 df_dtetx_dedup %>%
   separate(method, c('assembler','clustering','quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count')) %>% 
+  filter(quant %in% c('map','onts','count','sum')) %>% 
   mutate(lr_denovo = factor(assembler %in% c('trinity','bambu', 'limma'), 
                             labels = c('lr_denovo', 'others'))) %>% 
   ggplot(aes(x = csum.fp, y = csum.tp, group = method, color = assembler)) + 
@@ -390,7 +393,7 @@ df_dtugene_dedup <- lapply(names(list),
 
 df_dtugene_all %>%
   separate(method, c('assembler','clustering','quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |
            # For non-trinity assemblers, keep only bambu, sim, or corset clustering
@@ -409,7 +412,7 @@ ggsave('plot/ROC_dtugene_simplified.pdf', width = 7, height = 5)
 
 df_dtugene_dedup %>%
   separate(method, c('assembler','clustering','quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |
            # For non-trinity assemblers, keep only bambu, sim, or corset clustering
@@ -448,7 +451,7 @@ df_dge_dedup <- lapply(names(list),
 
 df_dge_all %>%
   separate(method, c('assembler','clustering','quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |
            # For non-trinity assemblers, keep only bambu, sim, or corset clustering
@@ -467,7 +470,7 @@ ggsave('plot/ROC_dge_simplified.pdf', width = 7, height = 5)
 
 df_dge_dedup %>%
   separate(method, c('assembler','clustering','quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |
            # For non-trinity assemblers, keep only bambu, sim, or corset clustering

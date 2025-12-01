@@ -11,11 +11,11 @@ source("~/lab_davidson/yan.a/software/scripts_denovo/R/get_cluster_exp.R")
 source("~/lab_davidson/yan.a/software/scripts_denovo/R/calculate_denovo_cluster.R")
 
 # set plotting parameters
-cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-cols <- cbPalette[c(1,2,6,4,7,8)]
-names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity')
-shapes <- c(15,15,16,17,17,17)
-names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity')
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#c51b8a")
+cols <- cbPalette[c(1,2,6,4,7,8, 3,5,9)]
+names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
+shapes <- c(15,15,16,17,17,17,17,17,17)
+names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
 
 files <- list.files('.', pattern = 'summary.rds', recursive = T)
 files <- files[!grepl('plot', files)]
@@ -164,7 +164,7 @@ lapply(filelist, function(x) {
 # remove bambu clsuter results from list
 filelist_denovo <- filelist
 
-salmon_count <- readRDS('plot/salmon_count.rds') # salmon quantified de novo counts
+salmon_count <- readRDS('plot/salmon_count_tmp.rds') # salmon quantified de novo counts
 requested_counts <- readRDS('plot/requested_counts.rds') # simulated counts
 
 bambucount <- read.table('../simulation_1m/bambu/ONT_merged_dge/default/counts_transcript.txt', header = T)
@@ -181,7 +181,7 @@ df1 <- data.frame(cluster_file = names(filelist_denovo)) %>%
 
 df2 <- data.frame(quant_file = names(salmon_count)) %>%
   separate(quant_file, c(NA, NA, NA, 'assembler', 'quant'), remove = F) %>%
-  filter(quant %in% c('onts','map') | quant_file == 'ONT_merged_quant_bambu_count') %>%
+  filter(quant %in% c('onts','map','sum') | quant_file == 'ONT_merged_quant_bambu_count') %>%
   unite(dataset, 'assembler')
 
 df1 <- df1 %>%
@@ -254,7 +254,7 @@ cor1 <- full_join(cor.corset, cor.native,
 cor2 <- read.csv('plot/cor.csv')
 cor2 <- left_join(cor2 %>% 
                     unite(dataset, 'assembler', remove = F) %>%
-                    filter(quant %in% c('onts', 'map') | method == 'ONT_merged_quant_bambu_count') %>%
+                    filter(quant %in% c('onts', 'map', 'sum') | method == 'ONT_merged_quant_bambu_count') %>%
                     select(c(2,3,4,8)),
                   cor2 %>%   
                     unite(dataset, 'assembler', remove = F) %>%
@@ -342,7 +342,7 @@ lapply(names(filelist), function(x) {
 
 # calculate redundancy of de novo clusters
 
-sqanti_summary_tmp <- sqanti_summary[c(1,2,2,3,3,4,5,5)]
+# sqanti_summary_tmp <- sqanti_summary[c(1,2,2,3,3,4,5,5)]
 
 cnt.list <- lapply(1:length(filelist), function(x) {
   

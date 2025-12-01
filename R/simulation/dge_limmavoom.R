@@ -18,16 +18,7 @@ args = commandArgs(trailingOnly=TRUE)
 # args[2] <- "../rattle/A549_MCF7_directRNA_corset/A549_MCF7_directRNA-clusters_mod.txt" 
 # args[3] <- 'rattle_corset'
 
-outputdir <- paste(args[3], args[4], sep = '_')
-
-dir.create(outputdir)
-
 dirs <- list.dirs(args[1], recursive = F, full.names = T)
-
-files <- list.files(dirs[grepl('dge', dirs)], 
-                    pattern = 'quant.sf', full.names = T, recursive = T)
-
-files <- files[grepl(args[4], files)]
 
 method <- str_split(args[3], pattern = '_', simplify = T)[2]
 
@@ -36,9 +27,44 @@ rt_gene <- get_gene_tx(args[2],
                        method = method)
 rownames(rt_gene) <- rt_gene$isoform
 
-salmon_gene <- tximport(files, 
-                        type = "salmon", 
-                        tx2gene = rt_gene[,c('isoform', 'geneid')])
+# if args[5] is not NA, means hybrid we need to add up count matrix
+if (is.na(args[5])) {
+  outputdir <- paste(args[3], args[4], sep = '_')
+  
+  dir.create(outputdir)
+  
+  files <- list.files(dirs[grepl('dge', dirs)], 
+                      pattern = 'quant.sf', full.names = T, recursive = T)
+  
+  files <- files[grepl(args[4], files)]
+  
+  salmon_gene <- tximport(files, 
+                          type = "salmon", 
+                          tx2gene = rt_gene[,c('isoform', 'geneid')])
+} else {
+  
+  ext <- "sum"
+  outputdir <- paste(args[3], ext, sep = '_')
+  
+  dir.create(outputdir)
+
+  files <- list.files(dirs[grepl('dge', dirs)], 
+                      pattern = 'quant.sf', full.names = T, recursive = T)
+  
+  files1 <- files[grepl(args[4], files)]
+  files2 <- files[grepl(args[5], files)]
+  
+  salmon_gene1 <- tximport(files1, 
+                          type = "salmon", 
+                          tx2gene = rt_gene[,c('isoform', 'geneid')])
+  salmon_gene2 <- tximport(files2, 
+                           type = "salmon", 
+                           tx2gene = rt_gene[,c('isoform', 'geneid')])
+  
+  stopifnot(all.equal(rownames(salmon_gene1$counts), rownames(salmon_gene2$counts)))
+  salmon_gene <- salmon_gene1
+  salmon_gene$counts <- salmon_gene1$counts + salmon_gene2$counts
+}
 
 x <- DGEList(counts = salmon_gene$counts, 
              #genes = rt_gene,

@@ -11,25 +11,29 @@ source('~/lab_davidson/yan.a/software/scripts_denovo/R/get_precision_recall.R')
 source('~/lab_davidson/yan.a/software/scripts_denovo/R/roc.R')
 
 # set plotting parameters
-cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-cols <- cbPalette[c(1,2,6,4,7,8)]
-names(cols) <- c('ref','bambu','isonform','rattle','rnabloom2','trinity')
-shapes <- c(15,15,16,17,17,17)
-names(shapes) <- c('ref','bambu','corset','isonclust','rattle','trinity')
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#c51b8a")
+cols <- cbPalette[c(1,2,6,4,7,8, 3,5,9)]
+names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
+shapes <- c(15,15,16,17,17,17,17,17,17)
+names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
 
 # load DE from bambu_10m
 bambu_anno <- readRDS('bambu_bambu_10m/summary.rds')
 
 true_dte <- readRDS('../bambu/merged_10m_dge/R/dte_tx.rds') %>% 
-  filter(adj.P.Val < 0.05 & chrom != 'chrIS') %>% pull(transcript_id)
+  filter(adj.P.Val < 0.05 & chrom != 'chrIS') %>% pull(transcript_id) %>%
+  na.omit()
 true_dge <- readRDS('../bambu/merged_10m_dge/R/dge_gene.rds') %>% filter(adj.P.Val < 0.05) %>%
   left_join(bambu_anno$asm_map, by = c('genes' = 'geneid')) %>% filter(!str_detect(assigned_gene, '^R')) %>%
-  pull(assigned_gene)
+  pull(assigned_gene) %>%
+  na.omit()
 true_dtutx <- readRDS('../bambu/merged_10m_dge/R/dtu_tx.rds') %>% 
-  filter(FDR < 0.05  & chrom != 'chrIS') %>% pull(transcript_id)
+  filter(FDR < 0.05  & chrom != 'chrIS') %>% pull(transcript_id) %>%
+  na.omit()
 true_dtugene <- readRDS('../bambu/merged_10m_dge/R/dtu_gene.rds') %>% filter(FDR < 0.05) %>%   
   left_join(bambu_anno$asm_map, by = c('gene_id' = 'geneid')) %>% filter(!str_detect(assigned_gene, '^R')) %>%
-  pull(assigned_gene)
+  pull(assigned_gene) %>%
+  na.omit()
 
 ## evaluate DTU at tx and gene level
 files.dtu <- list.files('.', pattern = 'dtu_tx.rds', recursive = T)
@@ -73,7 +77,7 @@ dev.off() # actually overlap can be more between assemblies
 
 files <- list.files('.', pattern = 'summary.rds', recursive = T)
 files <- files[grepl('/summary', files)]
-filelist <- lapply(rep(files[-c(1:3)], each = 2), function(x){
+filelist <- lapply(paste0(str_replace(files.dtu, "^(.*)_[^/]+/dtu_tx\\.rds$", "\\1"), '/summary.rds'), function(x){
   readRDS(x) 
 })
 names(filelist) <- names(test)
@@ -207,7 +211,7 @@ dev.off()
 
 plot_pr <- function(delist) {
   
-  df.pr <- sapply(1:30, function(x) {
+  df.pr <- sapply(1:45, function(x) {
     
     get_precision_recall(delist[[1]],
                          delist[[x+1]])
@@ -220,7 +224,7 @@ plot_pr <- function(delist) {
     rownames_to_column() %>% 
     separate(rowname, c('assembler','clustering','depth','quant')) %>%
     mutate(depth = factor(depth, levels = c('2m','5m','10m'))) %>%
-    filter(quant %in% c('map','onts')) %>%
+    filter(quant %in% c('map','onts','sum')) %>%
     ggscatter(x = 'Precision', y = 'Recall', 
               shape = 'clustering', color = 'assembler', 
               # fill = 'clustering', alpha = 'clustering',
@@ -241,7 +245,7 @@ plot_pr <- function(delist) {
     rownames_to_column() %>% 
     separate(rowname, c('assembler','clustering','depth','quant')) %>%
     mutate(depth = factor(depth, levels = c('2m','5m','10m'))) %>%
-    filter(quant %in% c('map','onts')) %>%
+    filter(quant %in% c('map','onts','sum')) %>%
     # dplyr::select(1:6) %>%
     pivot_longer(5:7) %>% 
     ggdotchart(x='name', y = 'value', #facet.by = 'assembler',
@@ -269,243 +273,6 @@ ggsave('plot/dtx_tx_pr.pdf', width = 18, height = 5)
 plot_pr(dge.list)
 ggsave('plot/dge_gene_pr.pdf', width = 18, height = 5)
 
-
-# ## DTU-TX
-# df_dtutx <- lapply(1:ntest, function(x){
-#   txmethod <- paste(str_split(names(test)[x], '_', simplify = T)[c(1,3)] , collapse = '_')
-#   test[[x]] %>%
-#     rowid_to_column() %>%
-#     mutate(associated_transcript = ifelse(associated_transcript == 'novel',
-#                                           #paste(names(test)[x], rowname, sep = '_'),
-#                                           paste(txmethod, rowid, sep = '_'),
-#                                           associated_transcript),
-#            is.de = as.numeric(associated_transcript %in% true_dtutx)) %>%
-#     select(associated_transcript, is.de) %>%
-#     unique() %>%
-#     rowid_to_column() %>%
-#     mutate(csum = cumsum(is.de)) %>%
-#     select(rowid, csum) %>%
-#     mutate(method = names(test)[x]) %>%
-#     separate(method, c('assembler','clustering','depth','quant'), remove = F)
-# }) %>% Reduce(rbind,. )
-# 
-# df_dtutx %>%
-#   filter(quant %in% c('map','onts')) %>%
-#   mutate(quant = factor(quant, levels = c('onts','ontp','map','align')),
-#          depth = factor(depth, levels = c('2m','5m','10m')),
-#          clustering = ifelse(clustering == 'corset', 'corset', 'native')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) +
-#   geom_line(#aes(linetype = clustering == 'corset' #, alpha = quant)
-#     ) +
-#   scale_color_manual(values = cols) +
-#   facet_grid(clustering~depth) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Assembled Transcripts') +
-#   ggtitle('DTU-TX')
-# ggsave('plot/ROC_dtutx.pdf', width = 9, height = 5)
-# 
-# ## DTE-TX
-# idx <- which(!duplicated(sapply(test3, function(x) dim(x)[1], simplify = T)))
-# 
-# df_dtetx <- lapply(idx, function(x){
-#   txmethod <- paste(str_split(names(test)[x], '_', simplify = T)[c(1,3)] , collapse = '_')
-#   test3[[x]] %>%
-#     rowid_to_column() %>%
-#     mutate(associated_transcript = ifelse(associated_transcript == 'novel',
-#                                           #paste(names(test2)[x], rowid, sep = '_'),
-#                                           paste(txmethod, rowid, sep = '_'),
-#                                           associated_transcript),
-#            is.de = as.numeric(associated_transcript %in% true_dte)) %>%
-#     select(associated_transcript, is.de) %>%
-#     unique() %>%
-#     rowid_to_column() %>%
-#     mutate(csum = cumsum(is.de)) %>%
-#     select(rowid, csum) %>%
-#     mutate(method = names(test3)[x]) %>%
-#     separate(method, c('assembler','clustering','depth','quant'), remove = F)
-# }) %>% Reduce(rbind,. )
-# 
-# df_dtetx %>%
-#   filter(quant %in% c('map','onts')) %>%
-#   mutate(quant = factor(quant, levels = c('onts','ontp','map','align')),
-#          depth = factor(depth, levels = c('2m','5m','10m')),
-#          clustering = ifelse(clustering == 'corset', 'corset', 'native')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) +
-#   geom_line(#aes(linetype = clustering == 'corset' #, alpha = quant)
-#     ) +
-#   scale_color_manual(values = cols) +
-#   facet_grid(.~depth) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Assembled Transcripts') +
-#   ggtitle('DTE-Tx')
-# ggsave('plot/ROC_dtetx.pdf', width = 9, height = 3)
-# 
-# ## DTU-gene
-# df_dtugene <- lapply(1:ntest, function(x){
-#   if (x %in% 1:(ntest)) {
-#     test2[[x]] %>%
-#       # rowid_to_column() %>%
-#       # left_join(filelist[[x]]$asm_map, by= 'geneid') %>%
-#       mutate(is.de = assigned_gene %in% true_dtugene) %>%
-#       select(assigned_gene, is.de) %>%
-#       unique() %>%
-#       rowid_to_column() %>%
-#       mutate(csum = cumsum(is.de)) %>%
-#       select(rowid, csum) %>%
-#       mutate(method = names(test2)[x]) %>%
-#       separate(method, c('assembler','clustering','depth','quant'), remove = F)
-#   } else {
-#     test2[[x]] %>%
-#       # rowid_to_column() %>%
-#       # left_join(filelist[[x]]$asm_map, by= c('gene_id'='geneid')) %>%
-#       mutate(assigned_gene = gene_id) %>%
-#       mutate(is.de = assigned_gene %in% true_dtugene) %>%
-#       select(assigned_gene, is.de) %>%
-#       unique() %>%
-#       rowid_to_column() %>%
-#       mutate(csum = cumsum(is.de)) %>%
-#       select(rowid, csum) %>%
-#       mutate(method = names(test2)[x]) %>%
-#       separate(method, c('assembler','clustering','depth','quant'), remove = F)
-#   }
-# }) %>% Reduce(rbind,. )
-# 
-# df_dtugene %>%
-#   filter(quant %in% c('map','onts')) %>%
-#   mutate(quant = factor(quant, levels = c('onts','ontp','map','align')),
-#          depth = factor(depth, levels = c('2m','5m','10m')),
-#          clustering = ifelse(clustering == 'corset', 'corset', 'native')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) +
-#   geom_line(# aes(linetype = clustering == 'corset' #, alpha = quant)
-#     ) +
-#   scale_color_manual(values = cols) +
-#   facet_grid(clustering~depth) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Clusters') +
-#   ggtitle('DTU-Gene')
-# ggsave('plot/ROC_dtugene.pdf', width = 9, height = 5)
-# 
-# ## DGE-gene
-# df_dge <- lapply(1:ntest, function(x){
-#   if (x %in% 1:(ntest)) {
-#     test4[[x]] %>%
-#       # rownames_to_column() %>%
-#       # rowid_to_column() %>%
-#       # left_join(filelist[[x]]$asm_map, by= c('rowname' = 'geneid')) %>%
-#       mutate(is.de = assigned_gene %in% true_dge) %>%
-#       select(assigned_gene, is.de) %>%
-#       unique() %>%
-#       rowid_to_column() %>%
-#       mutate(csum = cumsum(is.de)) %>%
-#       select(rowid, csum) %>%
-#       mutate(method = names(test4)[x]) %>%
-#       separate(method, c('assembler','clustering','depth','quant'), remove = F)
-#   } else {
-#     test4[[x]] %>%
-#       rownames_to_column(var = 'assigned_gene') %>%
-#       # rowid_to_column() %>%
-#       # left_join(filelist[[x]]$asm_map, by= c('rowname' = 'geneid')) %>%
-#       mutate(is.de = assigned_gene %in% true_dge) %>%
-#       select(assigned_gene, is.de) %>%
-#       unique() %>%
-#       rowid_to_column() %>%
-#       mutate(csum = cumsum(is.de)) %>%
-#       select(rowid, csum) %>%
-#       mutate(method = names(test4)[x]) %>%
-#       separate(method, c('assembler','clustering','depth','quant'), remove = F)
-#   }
-# }) %>% Reduce(rbind,. )
-# 
-# df_dge %>%
-#   filter(quant %in% c('map','onts')) %>%
-#   mutate(quant = factor(quant, levels = c('onts','ontp','map','align')),
-#          depth = factor(depth, levels = c('2m','5m','10m')),
-#          clustering = ifelse(clustering == 'corset', 'corset', 'native')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) +
-#   geom_line(#aes(linetype = clustering == 'corset' #, alpha = quant)
-#     ) +
-#   scale_color_manual(values = cols) +
-#   facet_grid(clustering~depth) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Clusters') +
-#   ggtitle('DGE-Gene')
-# ggsave('plot/ROC_dgegene.pdf', width = 9, height = 5)
-# 
-# 
-# ## some figures for seminar
-# ## DTU-TX
-# df_dtutx %>% 
-#   # filter(quant %in% c('map','onts'),
-#   #        clustering %in% c('corset'),
-#   #        depth == '10m') %>%
-#   filter(method %in% c('rattle_corset_10m_onts','rattle_corset_5m_onts', 'rnabloom2_corset_10m_onts','rnabloom2_corset_5m_onts', 'isonform_corset_5m_onts', 'trinity_corset_10m_map')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) + 
-#   geom_line(aes(linetype = assembler == 'trinity'),
-#     linewidth = 1) +
-#   scale_color_manual(values = cols) +
-#   # facet_grid(clustering~.) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Assembled Transcripts') + 
-#   ggtitle('DTU-TX') +
-#   force_panelsizes(rows = unit(3, "in"),
-#                    cols = unit(3, "in"))
-# ggsave('plot/ROC_dtutx_simplified.pdf', width = 7, height = 5)
-# 
-# # DTE-TX
-# df_dtetx %>% 
-#   # filter(quant %in% c('map','onts'),
-#   #        clustering %in% c('corset'),
-#   #        depth == '10m') %>%
-#   filter(method %in% c('rattle_corset_10m_onts','rattle_corset_5m_onts', 'rnabloom2_corset_10m_onts','rnabloom2_corset_5m_onts', 'isonform_corset_5m_onts', 'trinity_corset_10m_map')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) + 
-#   geom_line(aes(linetype = assembler == 'trinity'),
-#             linewidth = 1) +
-#   scale_color_manual(values = cols) +
-#   # facet_grid(.~depth) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Assembled Transcripts') + 
-#   ggtitle('DTE-Tx') +
-#   force_panelsizes(rows = unit(3, "in"),
-#                    cols = unit(3, "in"))
-# ggsave('plot/ROC_dtetx_simplified.pdf', width = 7, height = 5)
-# 
-# ## DTU-gene
-# df_dtugene %>%
-#   # filter(quant %in% c('map','onts'),
-#   #        clustering %in% c('corset'),
-#   #        depth == '10m') %>%
-#   filter(method %in% c('rattle_corset_10m_onts','rattle_corset_5m_onts', 'rnabloom2_corset_10m_onts','rnabloom2_corset_5m_onts', 'isonform_corset_5m_onts', 'trinity_corset_10m_map')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) + 
-#   geom_line(aes(linetype = assembler == 'trinity'),
-#             linewidth = 1) +
-#   scale_color_manual(values = cols) +
-#   # facet_grid(clustering~depth) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Clusters') + 
-#   ggtitle('DTU-Gene') +
-#   force_panelsizes(rows = unit(3, "in"),
-#                    cols = unit(3, "in"))
-# ggsave('plot/ROC_dtugene_simplified.pdf', width = 7, height = 5)
-# 
-# ## DGE-gene
-# df_dge %>%
-#   # filter(quant %in% c('map','onts'),
-#   #        clustering %in% c('corset'),
-#   #        depth == '10m') %>%
-#   filter(method %in% c('rattle_corset_10m_onts','rattle_corset_5m_onts', 'rnabloom2_corset_10m_onts','rnabloom2_corset_5m_onts', 'isonform_corset_5m_onts', 'trinity_corset_10m_map')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) + 
-#   geom_line(aes(linetype = assembler == 'trinity'),
-#             linewidth = 1) +
-#   scale_color_manual(values = cols) +
-#   # facet_grid(clustering~depth) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Clusters') + 
-#   ggtitle('DGE-Gene') +
-#   force_panelsizes(rows = unit(3, "in"),
-#                    cols = unit(3, "in"))
-# ggsave('plot/ROC_dgegene_simplified.pdf', width = 7, height = 5)
-
-
 line <- c('2m' = 0.1, '5m' = 0.5, '10m' = 1)
 
 ## ROC like curve
@@ -524,7 +291,7 @@ df_dtutx_dedup <- lapply(names(test),
 
 df_dtutx_all %>%
   separate(method, c('assembler','clustering','depth','quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          depth %in% c('5m', '10m'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |
@@ -545,7 +312,7 @@ ggsave('plot/ROC_dtutx_simplified.pdf', width = 7, height = 5)
 
 df_dtutx_dedup %>%
   separate(method, c('assembler','clustering','depth', 'quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          depth %in% c('5m', '10m'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |
@@ -584,7 +351,7 @@ df_dtetx_dedup <- lapply(names(list),
 
 df_dtetx_all %>%
   separate(method, c('assembler','clustering','depth', 'quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          depth %in% c('5m', '10m')) %>% 
   mutate(lr_denovo = factor(assembler %in% c('trinity','bambu', 'limma'), 
                             labels = c('lr_denovo', 'others'))) %>% 
@@ -601,7 +368,7 @@ ggsave('plot/ROC_dtetx_simplified.pdf', width = 7, height = 5)
 
 df_dtetx_dedup %>%
   separate(method, c('assembler','clustering','depth', 'quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          depth %in% c('5m', '10m')) %>% 
   mutate(lr_denovo = factor(assembler %in% c('trinity','bambu', 'limma'), 
                             labels = c('lr_denovo', 'others'))) %>% 
@@ -633,7 +400,7 @@ df_dtugene_dedup <- lapply(names(test2),
 
 df_dtugene_all %>%
   separate(method, c('assembler','clustering','depth', 'quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          depth %in% c('5m', '10m'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |
@@ -654,7 +421,7 @@ ggsave('plot/ROC_dtugene_simplified.pdf', width = 7, height = 5)
 
 df_dtugene_dedup %>%
   separate(method, c('assembler','clustering','depth', 'quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          depth %in% c('5m', '10m'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |
@@ -692,7 +459,7 @@ df_dge_dedup <- lapply(names(test4),
 
 df_dge_all %>%
   separate(method, c('assembler','clustering','depth', 'quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          depth %in% c('5m', '10m'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |
@@ -713,7 +480,7 @@ ggsave('plot/ROC_dge_simplified.pdf', width = 7, height = 5)
 
 df_dge_dedup %>%
   separate(method, c('assembler','clustering','depth', 'quant'), remove = F) %>%
-  filter(quant %in% c('map','onts','count'),
+  filter(quant %in% c('map','onts','count','sum'),
          depth %in% c('5m', '10m'),
          # For trinity assembler, keep only trinity clustering
          (assembler == "trinity" & clustering == "trinity") |

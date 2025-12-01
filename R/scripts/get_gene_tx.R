@@ -11,7 +11,7 @@ get_gene_tx <- function(tx_table, sqanti_class, method = 'rattle', extra = NULL)
     separate(V1, c('isoform','geneid','origin_txid','counts','label'), sep = ' ') %>% 
       dplyr::mutate(counts = str_remove(counts, 'total_reads=') %>% as.numeric()) 
 
-  } else if (method %in% c('corset','rnabloom2','bambu')) {
+  } else if (method %in% c('corset','rnabloom2','bambu','gencode')) {
     
     ## result after run corset on rnabloom2 assembly
 
@@ -19,7 +19,7 @@ get_gene_tx <- function(tx_table, sqanti_class, method = 'rattle', extra = NULL)
                          sep = '\t', header = F) %>%
       dplyr::rename(isoform = V1, geneid = V2)
     
-  } else if (method == 'trinity') {
+  } else if (method %in% c('trinity','rnaspades')) {
     
     table <- read.table(tx_table, 
                         sep = '\t', header = F) %>%

@@ -6,20 +6,23 @@ source('~/lab_davidson/yan.a/software/scripts_denovo/R/get_stats.R')
 source('~/lab_davidson/yan.a/software/scripts_denovo/R/plot_transrate.R')
 
 # set plotting parameters
-cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-cols <- cbPalette[c(1,2,6,4,7,8)]
-names(cols) <- c('ref','bambu','isonform','rattle','rnabloom2','trinity')
-shapes <- c(15,15,16,17,17,17)
-names(shapes) <- c('ref','bambu','corset','isonclust','rattle','trinity')
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#c51b8a")
+cols <- cbPalette[c(1,2,6,4,7,8, 3,5,9)]
+names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
+shapes <- c(15,15,16,17,17,17,17,17,17)
+names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
 
 ## set folders to work
 args <- commandArgs(trailingOnly=TRUE)
 
 args <- c('../bambu/',
+          '../bambudenovo/',
           '../rattle/', 
           '../rnabloom2/',
           '../isonform/',
-          '../trinitystranded/'
+          '../trinitystranded/',
+          '../rnaspades/',
+          '../rnabloom2hybrid/'
 )
 
 # get files
@@ -36,11 +39,11 @@ testlist <- lapply(test, function(x){
   
 }) %>%
   rbindlist() %>%
-  mutate(depth = ifelse(depth == 'ilu', '10m', depth)) %>% 
+  mutate(depth = ifelse(depth %in% c('ilu', 'hybrid_merged'), '10m', depth)) %>% 
   mutate(depth = factor(depth, levels = c('2m','5m','10m'), labels = c(2,5,10)),
          assembler = factor(assembler, 
-                            levels = c('bambu','rattle','rnabloom2','isonform','trinitystranded'),
-                            labels = c('bambu','rattle','rnabloom2','isonform','trinity')))
+                            levels = c('bambu','rattle','rnabloom2','isonform','trinitystranded','bambudenovo','rnaspades','rnabloom2hybrid'),
+                            labels = c('bambu','rattle','rnabloom2','isonform','trinity','bambudenovo','rnaspades','rnabloom2hybrid')))
 write.csv(testlist, 'plot/transrate_metric.csv')
 
 # all different plots

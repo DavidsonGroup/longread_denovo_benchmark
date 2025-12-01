@@ -23,13 +23,16 @@ true_dge <- readRDS("../bambu/pea_dge/R/dge_gene.rds") %>% filter(adj.P.Val < 0.
   pull(assigned_gene) %>%
   na.omit()
   
-true_dte <- readRDS("../bambu/pea_dge/R/dte_tx.rds") %>% filter(adj.P.Val < 0.05) %>% pull(transcript_id)
+true_dte <- readRDS("../bambu/pea_dge/R/dte_tx.rds") %>% filter(adj.P.Val < 0.05) %>% pull(transcript_id) %>%
+  na.omit()
 
 true_dtugene <- readRDS("../bambu/pea_dge/R/dtu_gene.rds") %>% filter(FDR < 0.05) %>%
   left_join(bambu_anno$asm_map, by = c('gene_id' = 'geneid')) %>% 
-  pull(assigned_gene)
+  pull(assigned_gene) %>%
+  na.omit()
 
-true_dtutx <- readRDS("../bambu/pea_dge/R/dtu_tx.rds") %>% filter(FDR < 0.05) %>% pull(transcript_id)
+true_dtutx <- readRDS("../bambu/pea_dge/R/dtu_tx.rds") %>% filter(FDR < 0.05) %>% pull(transcript_id) %>%
+  na.omit()
 
 # # x is the true set, y is the predicted set
 # get_precision_recall <- function(x,y) {
@@ -250,148 +253,6 @@ ggsave('plot/dtx_tx_pr.pdf', width = 12, height = 5)
 
 plot_pr(dge.list)
 ggsave('plot/dge_gene_pr.pdf', width = 12, height = 5)
-
-# ## ROC like curve
-# ## DTU-TX
-# df_dtutx <- lapply(1:ntest, function(x){
-#   test[[x]] %>% 
-#     rowid_to_column() %>%
-#     mutate(associated_transcript = ifelse(associated_transcript == 'novel', 
-#                                           paste(names(test)[x], rowid, sep = '_'),
-#                                           associated_transcript),
-#            is.de = as.numeric(associated_transcript %in% true_dtutx)) %>% 
-#     select(associated_transcript, is.de) %>%
-#     unique() %>% 
-#     rowid_to_column() %>%
-#     mutate(csum = cumsum(is.de)) %>% 
-#     select(rowid, csum) %>% 
-#     mutate(method = names(test)[x]) %>%
-#     separate(method, c('assembler','clustering','quant'), remove = F) 
-# }) %>% Reduce(rbind,. ) 
-# 
-# df_dtutx %>%
-#   filter(quant %in% c('map','onts','count')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) + 
-#   geom_line(aes(linetype = clustering == 'corset' #, alpha = quant
-#   )) +
-#   scale_color_manual(values = cols) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Assembled Transcripts') + 
-#   ggtitle('DTU-TX')
-# ggsave('plot/ROC_dtutx.pdf', width = 8, height = 5)
-# 
-# # DTE-TX
-# idx <- which(!duplicated(sapply(test3, function(x) dim(x)[1], simplify = T)))
-# df_dtetx <- lapply(idx, function(x){
-#   test3[[x]] %>% 
-#     rowid_to_column() %>%
-#     mutate(associated_transcript = ifelse(associated_transcript == 'novel', 
-#                                           paste(names(test3)[x], rowid, sep = '_'),
-#                                           associated_transcript),
-#            is.de = as.numeric(associated_transcript %in% true_dte)) %>% 
-#     select(associated_transcript, is.de) %>%
-#     unique() %>% 
-#     rowid_to_column() %>%
-#     mutate(csum = cumsum(is.de)) %>% 
-#     select(rowid, csum) %>% 
-#     mutate(method = names(test3)[x]) %>%
-#     separate(method, c('assembler','clustering','quant'), remove = F) 
-# }) %>% Reduce(rbind,. ) 
-# 
-# df_dtetx %>%
-#   filter(quant %in% c('map','onts','count')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) + 
-#   geom_line() +
-#   scale_color_manual(values = cols) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Assembled Transcripts') + 
-#   ggtitle('DTE-Tx')
-# ggsave('plot/ROC_dtetx.pdf', width = 8, height = 5)
-# 
-# 
-# # DTU-gene
-# df_dtugene <- lapply(1:ntest, function(x){
-#   if (x %in% 1:ntest) {
-#     test2[[x]] %>% 
-#       # rowid_to_column() %>%
-#       left_join(filelist[[x]]$asm_map, by= 'geneid') %>% 
-#       mutate(is.de = assigned_gene %in% true_dtugene) %>%
-#       select(assigned_gene, is.de) %>%
-#       unique() %>% 
-#       rowid_to_column() %>%
-#       mutate(csum = cumsum(is.de)) %>% 
-#       select(rowid, csum) %>% 
-#       mutate(method = names(test2)[x]) %>%
-#       separate(method, c('assembler','clustering','quant'), remove = F) 
-#   } else {
-#     test2[[x]] %>% 
-#       # rowid_to_column() %>%
-#       # left_join(filelist[[x]]$asm_map, by= c('gene_id'='geneid')) %>% 
-#       mutate(assigned_gene = gene_id) %>%
-#       mutate(is.de = assigned_gene %in% true_dtugene) %>%
-#       select(assigned_gene, is.de) %>%
-#       unique() %>% 
-#       rowid_to_column() %>%
-#       mutate(csum = cumsum(is.de)) %>% 
-#       select(rowid, csum) %>% 
-#       mutate(method = names(test2)[x]) %>%
-#       separate(method, c('assembler','clustering','quant'), remove = F) 
-#   }
-# }) %>% Reduce(rbind,. ) 
-# 
-# df_dtugene %>%
-#   filter(quant %in% c('map','onts','count')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) + 
-#   geom_line(aes(linetype = clustering == 'corset' #, alpha = quant
-#   )) +
-#   scale_color_manual(values = cols) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Clusters') + 
-#   ggtitle('DTU-Gene')
-# ggsave('plot/ROC_dtugene.pdf', width = 8, height = 5)
-# 
-# # DGE-gene
-# df_dge <- lapply(1:ntest, function(x){
-#   if (x %in% 1:ntest) {
-#     test4[[x]] %>% 
-#       rownames_to_column() %>%
-#       # rowid_to_column() %>%
-#       left_join(filelist[[x]]$asm_map, by= c('rowname' = 'geneid')) %>% 
-#       mutate(is.de = assigned_gene %in% true_dge) %>%
-#       select(assigned_gene, is.de) %>%
-#       unique() %>% 
-#       rowid_to_column() %>%
-#       mutate(csum = cumsum(is.de)) %>% 
-#       select(rowid, csum) %>% 
-#       mutate(method = names(test4)[x]) %>%
-#       separate(method, c('assembler','clustering','quant'), remove = F) 
-#   } else {
-#     test4[[x]] %>% 
-#       rownames_to_column(var = 'assigned_gene') %>%
-#       # rowid_to_column() %>%
-#       # left_join(filelist[[x]]$asm_map, by= c('rowname' = 'geneid')) %>% 
-#       mutate(is.de = assigned_gene %in% true_dge) %>%
-#       select(assigned_gene, is.de) %>%
-#       unique() %>% 
-#       rowid_to_column() %>%
-#       mutate(csum = cumsum(is.de)) %>% 
-#       select(rowid, csum) %>% 
-#       mutate(method = names(test4)[x]) %>%
-#       separate(method, c('assembler','clustering','quant'), remove = F) 
-#   }
-# }) %>% Reduce(rbind,. ) 
-# 
-# df_dge %>%
-#   filter(quant %in% c('map','onts','count')) %>%
-#   ggplot(aes(x = rowid, y = csum, group = method, color = assembler)) + 
-#   geom_line(aes(linetype = clustering == 'corset' #, alpha = quant)
-#   )) +
-#   scale_color_manual(values = cols) +
-#   ylab('Unique True Positives') +
-#   xlab('Top Ranked Clusters') + 
-#   ggtitle('DGE-Gene')
-# ggsave('plot/ROC_dgegene.pdf', width = 8, height = 5)
-
 
 ## ROC like curve
 ## DTU-TX

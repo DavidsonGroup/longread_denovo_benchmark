@@ -13,3 +13,13 @@ Rscript --vanilla eval_cluster.R ../simulation_1m/isonform/ONT_merged_sqanti3 ..
 Rscript --vanilla eval_cluster.R ../simulation_1m/isonform/ONT_merged_sqanti3 ../simulation_1m/isonform/ONT_merged/fx2tab.txt isonform_isonclust
 
 Rscript --vanilla eval_cluster.R ../simulation_1m/bambu/ONT_merged_sqanti3 ../simulation_1m/bambu/ONT_merged_dge/filter/tx2gene.txt bambu_bambu
+
+# hybrid
+Rscript --vanilla eval_cluster.R ../simulation_1m/rnaspades/hybrid_merged_sqanti3/ ../simulation_1m/rnaspades/hybrid_merged_corset/hybrid_merged-clusters_mod.txt rnaspades_corset
+Rscript --vanilla eval_cluster.R ../simulation_1m/rnaspades/hybrid_merged_sqanti3/ ../simulation_1m/rnaspades/tx2gene.txt rnaspades_rnaspades
+
+Rscript --vanilla eval_cluster.R ../simulation_1m/rnabloom2hybrid/hybrid_merged_sqanti3/ ../simulation_1m/rnabloom2hybrid/hybrid_merged_corset/hybrid_merged-clusters_mod.txt rnabloom2hybrid_corset
+
+# bambu denovo 
+Rscript --vanilla eval_cluster.R ../simulation_1m/bambudenovo/ONT_merged_sqanti3 ../simulation_1m/bambudenovo/ONT_merged_dge/filter/tx2gene.txt bambudenovo_bambu
+Rscript --vanilla eval_cluster.R ../simulation_1m/bambudenovo/ONT_merged_sqanti3 ../simulation_1m/bambudenovo/ONT_merged_corset/ONT_merged-clusters_mod.txt bambudenovo_corset

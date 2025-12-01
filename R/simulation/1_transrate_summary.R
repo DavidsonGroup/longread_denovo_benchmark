@@ -5,22 +5,23 @@ source('~/lab_davidson/yan.a/software/scripts_denovo/R/get_stats.R')
 source('~/lab_davidson/yan.a/software/scripts_denovo/R/plot_transrate.R')
 
 # set plotting parameters
-cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-cols <- cbPalette[c(1,2,6,4,7,8)]
-names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity')
-shapes <- c(15,15,16,17,17,17)
-names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity')
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#c51b8a")
+cols <- cbPalette[c(1,2,6,4,7,8, 3,5,9)]
+names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
+shapes <- c(15,15,16,17,17,17,17,17,17)
+names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
 
 args <- commandArgs(trailingOnly=TRUE)
 
 args <- c('../simulation_1m/bambu/',
+          '../simulation_1m/bambudenovo/',
+          '../simulation_1m/isonform/',
           '../simulation_1m/rattle/', 
           '../simulation_1m/rnabloom2/',
           '../simulation_1m/trinity/',
-          '../simulation_1m/isonform/',
+          '../simulation_1m/rnaspades/',
+          '../simulation_1m/rnabloom2hybrid/',
           '../sqanti_sim/'
-          #'../bambu/',
-          #'../isonform/'
 )
 
 dirs <- list.dirs(args, recursive = F, full.names = T)
@@ -35,8 +36,8 @@ testlist <- lapply(test, function(x){
   rbindlist() %>%
   mutate(depth = 1,
          assembler = factor(assembler, 
-                            levels = c('sqanti_sim','bambu','rattle','rnabloom2','isonform','trinity'),
-                            labels = c('ref','bambu','rattle','rnabloom2','isonform','trinity')))
+                            levels = c('sqanti_sim','bambu','rattle','rnabloom2','isonform','trinity','bambudenovo','rnaspades','rnabloom2hybrid'),
+                            labels = c('ref','bambu','rattle','rnabloom2','isonform','trinity','bambudenovo','rnaspades','rnabloom2hybrid')))
 write.csv(testlist, 'plot/transrate_metric.csv')
 
 plot_transrate(testlist, depth = F)

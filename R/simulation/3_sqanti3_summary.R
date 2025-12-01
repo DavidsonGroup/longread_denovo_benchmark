@@ -16,11 +16,11 @@ source('~/lab_davidson/yan.a/software/scripts_denovo/R/upset_sqanti.R')
 source("~/lab_davidson/yan.a/software/scripts_denovo/R/quantile_overlap.R")
 
 # set plotting parameters
-cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-cols <- cbPalette[c(1,2,6,4,7,8)]
-names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity')
-shapes <- c(15,15,16,17,17,17)
-names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity')
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#c51b8a")
+cols <- cbPalette[c(1,2,6,4,7,8, 3,5,9)]
+names(cols) <- c('limma','bambu','isonform','rattle','rnabloom2','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
+shapes <- c(15,15,16,17,17,17,17,17,17)
+names(shapes) <- c('sim','bambu','corset','isonclust','rattle','trinity','bambudenovo','rnaspades','rnabloom2hybrid')
 
 col_sqanti <- c(hue_pal()(3), rep(hue_pal()(3)[1], 2), rep(hue_pal()(3)[2], 2), rep(hue_pal()(3)[3], 5))
 names(col_sqanti) <- c("Annotated","Novel","Sequin" ,
@@ -33,12 +33,13 @@ col_sqanti <- col_sqanti[c(2,1,3, 8:12,6:7,4:5)]
 args <- commandArgs(trailingOnly=TRUE)
 
 args <- c('../simulation_1m/bambu/',
+          '../simulation_1m/bambudenovo/',
+          '../simulation_1m/isonform/',
           '../simulation_1m/rattle/', 
           '../simulation_1m/rnabloom2/',
           '../simulation_1m/trinity/',
-          '../simulation_1m/isonform/'
-          #'../bambu/',
-          #'../isonform/'
+          '../simulation_1m/rnaspades/',
+          '../simulation_1m/rnabloom2hybrid/'
 )
 
 dirs <- list.dirs(args, recursive = F, full.names = T)
@@ -51,7 +52,7 @@ sqanti_summary <- lapply(sqanti_files, function(x) {
   dplyr::select(c(1:8,15:17,25,29,30,41,46)) %>%
   dplyr::mutate(original = ifelse(str_detect(isoform, '_dup'), str_remove(isoform, '_dup.*'), isoform))
 })
-names(sqanti_summary) <- c('bambu','isonform', 'rattle','rnabloom2','trinity')
+names(sqanti_summary) <- c('bambu','bambudenovo','isonform', 'rattle','rnabloom2','rnabloom2hybrid','rnaspades','trinity')
 
 num_per_chr <- lapply(sqanti_summary, function(x) {
   x %>% dplyr::count(chrom) %>% 
@@ -248,10 +249,10 @@ pdf('plot/sqanti_upset.pdf', width = 6, height = 4)
 ## only overlap of know/annotated transcripts and genes
 upset_sqanti(sqanti_summary, subcat = 'all', 
              names = names(sqanti_summary) , featuretype = 'gene') %>%
-  upset(nsets = 5, order.by = 'freq', set_size.show = T, set_size.scale_max = 20000)
+  upset(nsets = 8, order.by = 'freq', set_size.show = T, set_size.scale_max = 20000)
 upset_sqanti(sqanti_summary, subcat = 'all', 
              names = names(sqanti_summary) , featuretype = 'transcript') %>%
-  upset(nsets = 5, order.by = 'freq', set_size.show = T, set_size.scale_max = 50000)
+  upset(nsets = 8, order.by = 'freq', set_size.show = T, set_size.scale_max = 50000)
 dev.off()
 
 # get reference expression and transcript length based on bambu
@@ -300,17 +301,42 @@ saveRDS(requested_counts, 'plot/requested_counts.rds')
 
 ## use Salmon expression for all assembly, compared to Bambu expression
 
-sqanti_summary_tmp <- sqanti_summary[c(2,2,3,3,3,4,4,5,5)]
+# sqanti_summary_tmp <- sqanti_summary[c(rep('bambudenovo',2),
+#                                        rep('isonform',2),rep('rattle',3),
+#                                        rep('rnabloom2',2 ), rep('trinity',2),
+#                                        rep('rnabloom2hybrid',1), 
+#                                        rep('rnaspades',1))]
 
 quant_summary <- list() 
 
-# for ONT
-quant_summary[1:7] <- lapply(1:7, function(x){
+salmon_count_tmp <- salmon_count[c(1:9,18:19)]
+
+# sum up hybrid mode
+salmon_count_tmp[['hybrid_merged_quant_rnabloom2hybrid_sum']] <- salmon_count[['hybrid_merged_quant_rnabloom2hybrid_onts']]
+salmon_count_tmp[['hybrid_merged_quant_rnabloom2hybrid_sum']]$counts <- salmon_count[['hybrid_merged_quant_rnabloom2hybrid_onts']]$counts + salmon_count[['hybrid_merged_quant_rnabloom2hybrid_map']]$counts
+
+salmon_count_tmp[['hybrid_merged_quant_rnaspades_sum']] <- salmon_count[['hybrid_merged_quant_rnaspades_onts']]
+salmon_count_tmp[['hybrid_merged_quant_rnaspades_sum']]$counts <- salmon_count[['hybrid_merged_quant_rnaspades_onts']]$counts + salmon_count[['hybrid_merged_quant_rnaspades_map']]$counts
+
+saveRDS(salmon_count_tmp, 'plot/salmon_count_tmp.rds')
+
+sqanti_summary_tmp <- sqanti_summary[c(rep('bambudenovo',2),
+                                       rep('isonform',2), rep('rattle',3),
+                                       rep('rnabloom2',2), rep('trinity',2),
+                                       rep('rnabloom2hybrid',1), 
+                                       rep('rnaspades',1))]
+
+# for ONT and hybrid I use the same simulated counts from ONT
+quant_summary[c(1:9, 12:13)] <- lapply(c(1:9, 12:13), function(x){
   
-  title <- (files[x] %>% str_split('/', simplify = T))[3]
+  print(names(sqanti_summary_tmp)[x])
+  print(names(salmon_count_tmp[x]))
+  
+  # title <- (files[x] %>% str_split('/', simplify = T))[3]
+  title <- names(sqanti_summary_tmp)[x]
   print(title)
-  
-  quantile_overlap(sqanti_summary_tmp[[x]], salmon_count[[x]], title, 
+
+  quantile_overlap(sqanti_summary_tmp[[x]], salmon_count_tmp[[x]], title, 
                    requested_counts)
   
 })
@@ -325,17 +351,22 @@ illumina_counts <- lapply(list.files('../simulation_1m/trinity/newcounts/', patt
 illumina_counts <- data.frame(illumina_counts[,1], rowSums(illumina_counts[,-1]))
 colnames(illumina_counts) <- c('transcript_id', 'illumina_counts_real')
 
-quant_summary[8:9] <- lapply(8:9, function(x){
+quant_summary[c(10:11)] <- lapply(c(10:11), function(x){
   
-  title <- (files[x] %>% str_split('/', simplify = T))[3]
+  print(names(sqanti_summary_tmp)[x])
+  print(names(salmon_count_tmp[x]))
+  
+  # title <- (files[x] %>% str_split('/', simplify = T))[3]
+  title <- names(sqanti_summary_tmp)[x]
   print(title)
   
-  quantile_overlap(sqanti_summary_tmp[[x]], salmon_count[[x]], title, 
+  quantile_overlap(sqanti_summary_tmp[[x]], salmon_count_tmp[[x]], title, 
                    requested_counts )
   
 })
 
-names(quant_summary) <- basename(dirname(files)) 
+# names(quant_summary) <- basename(dirname(files)) 
+names(quant_summary) <- names(salmon_count_tmp)
 
 # can add recovery and correlation for bambu if needed
 bambucount <- read.table('../simulation_1m/bambu/ONT_merged_dge/default/counts_transcript.txt', header = T)
@@ -359,10 +390,10 @@ quant_summary_cpm_recov <- lapply(quant_summary, function(x){
 }) %>% rbindlist() %>% 
   mutate(method = rep(names(quant_summary), each = 11)) %>%
   separate(method, c(NA,NA, NA, 'assembler', 'quant'), remove = F, sep = '_') %>%
-  mutate(assembler = factor(assembler, levels = c('bambu','rattle','rnabloom2','isonform','trinity')))
+  mutate(assembler = factor(assembler, levels = c('bambu','bambudenovo','rattle','rnabloom2','isonform','trinity','rnaspades','rnabloom2hybrid')))
 
 quant_summary_cpm_recov %>% 
-  filter(quant %in% c('onts', 'map') | assembler == 'bambu') %>%
+  filter(quant %in% c('onts', 'map','sum') | assembler == 'bambu') %>%
   ggplot(aes(x = truecpm_bins, y = ProportionQuantified, color = assembler)) +
   geom_point() + 
   geom_line(aes(group = method)) +
@@ -388,11 +419,11 @@ quant_summary_quantile_recov <- lapply(quant_summary, function(x){
 }) %>% rbindlist() %>% 
   mutate(method = rep(names(quant_summary), each = 10)) %>% 
   separate(method, c(NA,NA, NA, 'assembler', 'quant'), remove = F, sep = '_') %>%
-  mutate(assembler = factor(assembler, levels = c('bambu','rattle','rnabloom2','isonform','trinity')))
+  mutate(assembler = factor(assembler, levels = c('bambu','bambudenovo','rattle','rnabloom2','isonform','trinity','rnaspades','rnabloom2hybrid')))
 write.csv(quant_summary_quantile_recov, 'plot/quant_summary_quantile_recov.csv')
 
 quant_summary_quantile_recov %>% 
-  filter(quant %in% c('onts', 'map') | assembler == 'bambu') %>%
+  filter(quant %in% c('onts', 'map','sum') | assembler == 'bambu') %>%
   ggplot(aes(x = truecount_quantile_range, y = ProportionAssembled, color = assembler)) +
   geom_point() + 
   geom_line(aes(group = method)) +
@@ -422,11 +453,11 @@ quant_summary_quantile_recov2 <- lapply(quant_summary, function(x){
 }) %>% rbindlist() %>% 
   mutate(method = rep(names(quant_summary), each = 10)) %>% 
   separate(method, c(NA,NA, NA, 'assembler', 'quant'), remove = F, sep = '_') %>%
-  mutate(assembler = factor(assembler, levels = c('bambu','rattle','rnabloom2','isonform','trinity')))
+  mutate(assembler = factor(assembler, levels = c('bambu','bambudenovo','rattle','rnabloom2','isonform','trinity','rnaspades','rnabloom2hybrid')))
 write.csv(quant_summary_quantile_recov2, 'plot/quant_summary_quantile_recov_gene.csv')
 
 quant_summary_quantile_recov2 %>% 
-  filter(quant %in% c('onts', 'map') | assembler == 'bambu') %>%
+  filter(quant %in% c('onts', 'map','sum') | assembler == 'bambu') %>%
   ggplot(aes(x = truecount_quantile_range, y = ProportionAssembled, color = assembler)) +
   geom_point() + 
   geom_line(aes(group = method)) +
@@ -465,12 +496,12 @@ quant_summary_cpm_redun <- lapply(names(quant_summary), function(x){
     mutate(method = x)
 }) %>% rbindlist() %>%
   separate(method, c(NA,NA, NA, 'assembler', 'quant'), remove = F, sep = '_') %>%
-  mutate(assembler = factor(assembler, levels = c('bambu','rattle','rnabloom2','isonform', 'trinity')),
+  mutate(assembler = factor(assembler, levels = c('bambu','bambudenovo','rattle','rnabloom2','isonform', 'trinity','rnaspades','rnabloom2hybrid')),
          truecount_quantile_range = factor(truecount_quantile_range,
                                            levels = levels(quant_summary_quantile_recov$truecount_quantile_range)))
 
 quant_summary_cpm_redun %>%
-  filter(quant %in% c('onts', 'map'),
+  filter(quant %in% c('onts', 'map','sum'),
          # redundantAsm > 1#,
          #assembler == 'rattle', truecpm_bins == '(10,Inf]'
   ) %>%
@@ -482,7 +513,7 @@ quant_summary_cpm_redun %>%
 ggsave('plot/quant_summary_redundancy_bin_boxplot.pdf', width = 8, height = 8)
 
 quant_summary_cpm_redun %>%
-  filter(quant %in% c('onts', 'map'),
+  filter(quant %in% c('onts', 'map','sum'),
          # redundantAsm > 1#,
          #assembler == 'rattle', truecpm_bins == '(10,Inf]'
   ) %>%
@@ -501,12 +532,12 @@ lcpm.cor <- data.frame(gene_cor = sapply(quant_summary, function(x) cor(x$lcpm_g
                        tx_counts_ref = sapply(quant_summary, function(x) sum(x$lcpm_tx$true_counts), simplify = T),
                        tx_counts_asm = sapply(quant_summary, function(x) sum(x$lcpm_tx$counts.max), simplify = T)) %>%
   separate(method, c('col1','col2','salmon','assembler','quant'), remove = F) %>%
-  mutate(assembler = factor(assembler, levels = c('bambu','rattle','rnabloom2','isonform', 'trinity')))
+  mutate(assembler = factor(assembler, levels = c('bambu','bambudenovo','rattle','rnabloom2','isonform', 'trinity', 'rnaspades','rnabloom2hybrid')))
 
 write.csv(lcpm.cor, 'plot/cor.csv')
 
 lcpm.cor %>%
-  filter(quant %in% c('onts', 'map') | assembler == 'bambu') %>%
+  filter(quant %in% c('onts', 'map','sum') | assembler == 'bambu') %>%
   ggplot(aes(x = assembler, y = gene_cor, color = assembler)) +
   geom_point(aes(#shape = quant, 
     size = 1)) + 
@@ -516,7 +547,7 @@ lcpm.cor %>%
 ggsave('plot/quant_summary_gene_cor_lineplot.pdf', width = 4, height = 3)
 
 lcpm.cor %>%
-  filter(quant %in% c('onts', 'map') | assembler == 'bambu') %>%
+  filter(quant %in% c('onts', 'map','sum') | assembler == 'bambu') %>%
   ggplot(aes(x = assembler, y = tx_cor, color = assembler)) +
   geom_point(aes(#shape = quant, 
                  size = 1)) + 
@@ -526,11 +557,11 @@ lcpm.cor %>%
 ggsave('plot/quant_summary_tx_cor_lineplot.pdf', width = 4, height = 3)
 
 
-for (i in names(quant_summary)) {
-  
-  ggsave(paste0('plot/',i,'_quant_summary1.pdf'), plot = quant_summary[[i]]$plot1, width = 8, height = 16)
-  ggsave(paste0('plot/',i,'_quant_summary2.pdf'), plot = quant_summary[[i]]$plot2, width = 8, height = 8)
-}
+# for (i in names(quant_summary)) {
+#   
+#   ggsave(paste0('plot/',i,'_quant_summary1.pdf'), plot = quant_summary[[i]]$plot1, width = 8, height = 16)
+#   ggsave(paste0('plot/',i,'_quant_summary2.pdf'), plot = quant_summary[[i]]$plot2, width = 8, height = 8)
+# }
 
 saveRDS(quant_summary, 'plot/quant_summary.rds')
 saveRDS(sqanti_summary, 'plot/sqanti_summary.rds')

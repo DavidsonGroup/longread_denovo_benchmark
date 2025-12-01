@@ -26,21 +26,7 @@ args = commandArgs(trailingOnly=TRUE)
 # args[2] <- "../simulation_1m/rnabloom2/ONT_merged_corset/ONT_merged-clusters_mod.txt"
 # args[3] <- 'rnabloom2_corset'
 
-outputdir <- paste(args[3], args[4], sep = '_')
-
-dir.create(outputdir)
-
 dirs <- list.dirs(args[1], recursive = F, full.names = T)
-
-files <- list.dirs(dirs[grepl('dge', dirs)], recursive = F, full.names = T) 
-files <- files[grepl(args[4], files)] ## shortread map mode slightly better than align mode
-
-salmon_tx <- catchSalmon(files)
-colnames(salmon_tx$counts) <- basename(files)
-
-pdf(paste0(outputdir, '/hist_disp.pdf'))
-hist(salmon_tx$annotation$Overdispersion)
-dev.off()
 
 method <- str_split(args[3], pattern = '_', simplify = T)[2]
 
@@ -49,8 +35,57 @@ rt_gene <- get_gene_tx(args[2],
                        method = method)
 rownames(rt_gene) <- rt_gene$isoform
 
-y <- DGEList(counts = salmon_tx$counts/salmon_tx$annotation$Overdispersion, 
-             genes = rt_gene[rownames(salmon_tx$counts),],
+# if args[5] is not NA, means hybrid we need to add up count matrix
+if (is.na(args[5])) {
+  outputdir <- paste(args[3], args[4], sep = '_')
+  
+  dir.create(outputdir)
+  
+  files <- list.files(dirs[grepl('dge', dirs)], 
+                      pattern = 'quant.sf', full.names = T, recursive = T)
+  
+  files <- files[grepl(args[4], files)]
+  
+  salmon_tx <- catchSalmon(dirname(files))
+  colnames(salmon_tx$counts) <- basename(dirname(files))
+  pdf(paste0(outputdir, '/hist_disp.pdf'))
+  hist(salmon_tx$annotation$Overdispersion)
+  dev.off()
+  
+  salmon_counts <- salmon_tx$counts/salmon_tx$annotation$Overdispersion
+  
+} else {
+  
+  ext <- "sum"
+  outputdir <- paste(args[3], ext, sep = '_')
+  
+  dir.create(outputdir)
+  
+  files <- list.files(dirs[grepl('dge', dirs)], 
+                      pattern = 'quant.sf', full.names = T, recursive = T)
+  
+  files1 <- files[grepl(args[4], files)]
+  files2 <- files[grepl(args[5], files)]
+  
+  salmon_tx1 <- catchSalmon(dirname(files1))
+  colnames(salmon_tx1$counts) <- basename(dirname(files1))
+  pdf(paste0(outputdir, '/hist_disp1.pdf'))
+  hist(salmon_tx1$annotation$Overdispersion)
+  dev.off()
+  
+  salmon_tx2 <- catchSalmon(dirname(files2))
+  colnames(salmon_tx2$counts) <- basename(dirname(files2))
+  pdf(paste0(outputdir, '/hist_disp2.pdf'))
+  hist(salmon_tx2$annotation$Overdispersion)
+  dev.off()
+  
+  stopifnot(all.equal(rownames(salmon_tx1$counts), rownames(salmon_tx2$counts)))
+  # salmon_tx <- salmon_tx1
+  salmon_counts <- salmon_tx1$counts/salmon_tx1$annotation$Overdispersion + salmon_tx2$counts/salmon_tx2$annotation$Overdispersion
+}
+
+y <- DGEList(counts = salmon_counts, 
+             genes = rt_gene[rownames(salmon_counts),],
              group = rep(c('ctrl','de'), each = 3))
 colnames(y) <- c('ctrl1','ctrl2', 'ctrl3','de1','de2','de3')
 

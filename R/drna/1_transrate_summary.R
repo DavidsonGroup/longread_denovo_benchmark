@@ -44,38 +44,6 @@ testlist <- lapply(test, function(x){
          )
 write.csv(testlist, 'plot/transrate_metric.csv')
 
-# read.stats <- fread('../sqanti_sim/1m/ONT_merged.seqlength', header = F)
-# colnames(read.stats) <- c('contig_name', 'length')
-# read.stats$method <- 'raw_reads'
-
-# rbindlist(list(testlist, read.stats), fill = T) %>% 
-#   ggplot(aes(x=method, y=length)) +
-#   geom_boxplot(aes(fill = method)) +
-#   theme(axis.text.x=element_text(angle=45, hjust=1)) +
-#   stat_summary(fun.y = function(x) log10(mean(10^x)), geom = "point") +  # Add points to plot ,  col = "red"
-#   stat_summary(fun.y = function(x) log10(mean(10^x)), geom = "text", # col = "red",     # Add text to plot
-#                vjust = 1.5, aes(label = round(..y.., digits = 0))) +
-#   scale_y_log10() +
-#   scale_fill_manual(values = cols) +
-#   ylab('Transcript length (bp)')
-# ggsave('plot/transcript_length_with_raw.pdf', width = 5, height = 4)
-
-# rbindlist(list(testlist, 
-#                bambu.stats %>% mutate(method = 'bambu')), 
-#           fill = T) %>% 
-#   ggplot(aes(x=method, y=length)) +
-#   geom_boxplot(aes(fill = method)) +
-#   theme(axis.text.x=element_text(angle=45, hjust=1)) +
-#   stat_summary(fun.y = function(x) log10(mean(10^x)), geom = "point",
-#                position = position_dodge(width = 0.75)) +  # Add points to plot ,  col = "red"
-#   stat_summary(fun.y = function(x) log10(mean(10^x)), geom = "text", # col = "red",     # Add text to plot
-#                vjust = 1.5, aes(label = round(..y.., digits = 0)),
-#                position = position_dodge(width = 0.75)) +
-#   scale_y_log10() +
-#   scale_fill_manual(values = cols) +
-#   ylab('Transcript length (bp)')
-# ggsave('plot/transcript_length_with_bambu.pdf', width = 8, height = 4)
-
 plot_transrate(testlist, depth = F)
 
 

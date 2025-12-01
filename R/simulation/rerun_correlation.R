@@ -10,10 +10,13 @@ sqanti_summary <- readRDS('plot/sqanti_summary.rds')
 requested_counts <- readRDS('plot/requested_counts.rds')
 
 args <- c('../simulation_1m/bambu/',
+          '../simulation_1m/bambudenovo/',
+          '../simulation_1m/isonform/',
           '../simulation_1m/rattle/', 
           '../simulation_1m/rnabloom2/',
-          '../simulation_1m/isonform/',
-          '../simulation_1m/trinity/'
+          '../simulation_1m/trinity/',
+          '../simulation_1m/rnaspades/',
+          '../simulation_1m/rnabloom2hybrid/'
 )
 
 salmon_files <- lapply(args, function(x) {
@@ -38,20 +41,46 @@ df$quant), drop = T)
 
 all_quant <- lapply(df_list, function(df){
   
-  quant_summary <- lapply(1:6, function(x){
+  if (nrow(df) == 6) {
+    print('Long/short')
+    quant_summary <- lapply(1:6, function(x){
+      
+      counts <- tximport(df[x,'path'], 
+                         type = "salmon", 
+                         txOut = T)
+      
+      counts <- data.frame(counts = counts$counts[,1], 
+                           isoform = rownames(counts$counts))
+      
+      quant <- quantile_overlap(sqanti_summary[[df[x,'sqanti_summary']]], 
+                                counts, 'isoform', requested_counts)
+      
+    })
+  } else if (nrow(df) == 12) {
     
-    counts <- tximport(df[x,'path'], 
-                       type = "salmon", 
-                       txOut = T)
+    print('Hybrid')
     
-    counts <- data.frame(counts = counts$counts[,1], 
-                         isoform = rownames(counts$counts))
-    
-    quant <- quantile_overlap(sqanti_summary[[df[x,'sqanti_summary']]], 
-                              counts, 'isoform', requested_counts)
-    
-  })
-  
+    quant_summary <- lapply(1:6, function(x){
+      # long read
+      counts1 <- tximport(df[x,'path'], 
+                         type = "salmon", 
+                         txOut = T)
+      # short read
+      counts2 <- tximport(df[x+6,'path'], 
+                          type = "salmon", 
+                          txOut = T)
+      
+      stopifnot(all.equal(rownames(counts1$counts), rownames(counts2$counts)))
+      
+      counts <- data.frame(counts = counts1$counts[,1] + counts2$counts[,1], 
+                           isoform = rownames(counts1$counts))
+      
+      quant <- quantile_overlap(sqanti_summary[[df[x,'sqanti_summary']]], 
+                                counts, 'isoform', requested_counts)
+      
+    })
+  }
+
   tx_exp_tiled <- lapply(quant_summary, function(x) {
     data.frame(tx = rownames(x$lcpm_tx),
                assemble_cpm.max = x$lcpm_tx$assemble_cpm.max, # take max if multiple de novo tx match to 1 ref tx

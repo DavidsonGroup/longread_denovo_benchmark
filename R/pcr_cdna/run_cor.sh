@@ -51,3 +51,5 @@
 
 module load R/4.2.3
 Rscript --vanilla rerun_correlation.R
+Rscript --vanilla rerun_correlation_exclude_unassemble.R
+Rscript --vanilla rerun_correlation_cluster.R
