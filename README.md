@@ -1,10 +1,11 @@
 - [Longread\_denovo\_benchmark](#longread_denovo_benchmark)
   - [Generate simulation data](#generate-simulation-data)
   - [Assemble](#assemble)
-    - [Simulation data (unstraned)](#simulation-data-unstraned)
-    - [PCR-cDNA data from cancer cell lines (stranded)](#pcr-cdna-data-from-cancer-cell-lines-stranded)
-    - [Direct RNA data from cancer cell lines (stranded)](#direct-rna-data-from-cancer-cell-lines-stranded)
-    - [Pea PCR-cDNA data (stranded)](#pea-pcr-cdna-data-stranded)
+    - [ONT simulation data (unstraned)](#ont-simulation-data-unstraned)
+    - [ONT PCR-cDNA data from cancer cell lines (stranded)](#ont-pcr-cdna-data-from-cancer-cell-lines-stranded)
+    - [ONT Direct RNA data from cancer cell lines (stranded)](#ont-direct-rna-data-from-cancer-cell-lines-stranded)
+    - [PacBio kinnex Human PBMC single-cell data 10x 3' kit (stranded)](#pacbio-kinnex-human-pbmc-single-cell-data-10x-3-kit-stranded)
+    - [ONT Pea PCR-cDNA data (stranded)](#ont-pea-pcr-cdna-data-stranded)
   - [Generate summary and quality metrics](#generate-summary-and-quality-metrics)
   - [Summarise metric and differential analysis in R](#summarise-metric-and-differential-analysis-in-r)
   - [Generate plot](#generate-plot)
@@ -16,7 +17,7 @@
 Code to generate, process and quality check long read *de novo* transcriptome assembly
 
 ## Generate simulation data
-[Code for simulation](simulation/)
+[Code for simulation](prepare_data/simulation/)
 
 We first obtained a subset of transcripts that are widely expressed in the GTEx v9 long read dataset (92 samples) using Gencode comprehensive annotation (v44). We kept transcripts with more than 5 reads in at least 15 samples after Salmon quantification (18145 genes, 40509 transcripts), and stored their mean count per million (CPM) values as the control group’s baseline expression. 
 
@@ -28,21 +29,28 @@ The simulated data was non-stranded, and contains 2000 DE genes, 2000 genes with
 
 
 ## Assemble 
+All assemblies are uploaded to https://doi.org/10.5281/zenodo.17538009.- [Longread\_denovo\_benchmark](#longread_denovo_benchmark)
 
-### Simulation data (unstraned)
+### ONT simulation data (unstraned)
 [Code for assembling](assemble/simulation/)
 
-### PCR-cDNA data from cancer cell lines (stranded)
+### ONT PCR-cDNA data from cancer cell lines (stranded)
 [Code for assembling](assemble/pcr_cdna/)
 
-### Direct RNA data from cancer cell lines (stranded)
+### ONT Direct RNA data from cancer cell lines (stranded)
 [Code for assembling](assemble/drna/)
 
-### Pea PCR-cDNA data (stranded)
+### PacBio kinnex Human PBMC single-cell data 10x 3' kit (stranded)
+Data downloaded and processed use [code](prepare_data/single_cell/)
+[Code for assembling](assemble/single_cell/)
+
+### ONT Pea PCR-cDNA data (stranded)
 [Code for assembling](assemble/pea/)
 
 ## Generate summary and quality metrics
-[Code for generating quanlity metrics](qc/)
+We now provide code to run all quanlity checks, this can also be done using the [nextflow pipeline denovo_qc_nextflow](https://github.com/alexyfyf/denovo_qc_nextflow). 
+
+[Code for generating quality metrics](qc/)
 
 We have generated the following measures to compare the quality of assemblies.
 1. Transrate analysis of *de novo* transcriptome
@@ -50,13 +58,14 @@ We have generated the following measures to compare the quality of assemblies.
 3. SQANTI3 analysis of *de novo* transcriptome
 4. BUSCO analysis using genome corrected *de novo* transcriptome
 5. Salmon quantification of pooled samples using *de novo* transcriptome
-6. Corset clustering of *de novo* transcriptome
-7. Salmon quantification of individual samples using *de novo* transcriptome
+6. (Optional) Oarfish quantification of pooled samples or single-cell using *de novo* transcriptome
+7. Corset clustering of *de novo* transcriptome
+8. Salmon quantification of individual samples using *de novo* transcriptome
 
 ## Summarise metric and differential analysis in R
 [Code for summarising and DE analysis](R/)
 
-We then performed DE analysis (DGE, DTE, DTU) using the count matrix from step 7.
+We then performed DE analysis (DGE, DTE, DTU) using the count matrix from step 8 for bulk RNAseq, and from step 6 for single-cell analysis (clustering and pseudobulking first).
 
 ## Generate plot
 

@@ -138,14 +138,14 @@ rownames(gene_counts_bambu) <- gene_counts_bambu$gene_id
 
 # for non sequin
 geneorder <- all_quant$rattle.10m.pri$gene_exp_tiled %>%
-  filter(!str_detect(gene, '^R')) %>% pull(gene) %>% unique()
+  filter(!str_detect(gene, '^R|^Bambu')) %>% pull(gene) %>% unique()
 
 truecpm_gene <- log2(gene_counts_bambu[,-1] + 1)[geneorder, ] %>% 
   as.matrix() %>%
   c()
 
 txorder <- all_quant$rattle.10m.pri$tx_exp_tiled %>%
-  filter(!str_detect(tx, '^R')) %>% pull(tx) %>% unique()
+  filter(!str_detect(tx, '^R|Bambu')) %>% pull(tx) %>% unique()
 
 truecpm_tx <- log2(tx_counts_bambu$counts + 1)[txorder, ] %>%
   as.matrix() %>%
@@ -158,9 +158,27 @@ tx_sequin <- grep('^R', all_quant$rattle.10m.pri$tx_exp_tiled$tx)
 stopifnot(length(unique(lapply(all_quant, function(x) rownames(x$tx_exp_tiled)))) == 1)
 stopifnot(length(unique(lapply(all_quant, function(x) rownames(x$gene_exp_tiled)))) == 1)
 
+# cor_noseq <- lapply(all_quant, function(x){
+#   cor.tx <- cor(x$tx_exp_tiled$assemble_cpm[-tx_sequin], truecpm_tx)
+#   cor.gene <- cor(x$gene_exp_tiled$assemble_cpm[-gene_sequin], truecpm_gene)
+#   res <- data.frame(cor.tx = cor.tx, cor.gene = cor.gene)
+# }) %>% rbindlist() %>%
+#   mutate(data = names(all_quant))
+
+# remove bambu tx, only correlate reference
+# cor_noseq <- lapply(all_quant, function(x){
+#   cor.tx <- cor(x$tx_exp_tiled %>% filter(tx %in% txorder) %>% pull(assemble_cpm), 
+#                 truecpm_tx)
+#   cor.gene <- cor(x$gene_exp_tiled %>% filter(gene %in% geneorder) %>% pull(assemble_cpm), truecpm_gene)
+#   res <- data.frame(cor.tx = cor.tx, cor.gene = cor.gene)
+# }) %>% rbindlist() %>%
+#   mutate(data = names(all_quant))
+
 cor_noseq <- lapply(all_quant, function(x){
-  cor.tx <- cor(x$tx_exp_tiled$assemble_cpm[-tx_sequin], truecpm_tx)
-  cor.gene <- cor(x$gene_exp_tiled$assemble_cpm[-gene_sequin], truecpm_gene)
+  cor.tx <- cor(log2((x$tx_exp_tiled %>% filter(tx %in% txorder) %>% pull(counts.max)) + 1), 
+                truecpm_tx)
+  cor.gene <- cor(log2((x$gene_exp_tiled %>% filter(gene %in% geneorder) %>% pull(assemble_count)) + 1), 
+                  truecpm_gene)
   res <- data.frame(cor.tx = cor.tx, cor.gene = cor.gene)
 }) %>% rbindlist() %>%
   mutate(data = names(all_quant))
@@ -186,8 +204,12 @@ sequin.tx.exp <- sequin.tx.exp[sequin.tx.order, ] %>%
   c()
 
 cor_seq <- lapply(all_quant, function(x){
-  cor.tx <- cor(x$tx_exp_tiled$assemble_cpm[tx_sequin], sequin.tx.exp)
-  cor.gene <- cor(x$gene_exp_tiled$assemble_cpm[gene_sequin], sequin.gene.exp)
+  cor.tx <- cor(log2(x$tx_exp_tiled$counts.max[tx_sequin] + 1),
+    # x$tx_exp_tiled$assemble_cpm[tx_sequin], 
+    sequin.tx.exp)
+  cor.gene <- cor(log2(x$gene_exp_tiled$assemble_count[gene_sequin] + 1),
+                  # x$gene_exp_tiled$assemble_cpm[gene_sequin], 
+                  sequin.gene.exp)
   res <- data.frame(cor.tx = cor.tx, cor.gene = cor.gene)
 }) %>% rbindlist() %>%
   mutate(data = names(all_quant))

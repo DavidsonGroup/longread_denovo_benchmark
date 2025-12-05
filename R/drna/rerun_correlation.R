@@ -93,14 +93,14 @@ rownames(gene_counts_bambu) <- gene_counts_bambu$gene_id
 
 # for non sequin
 geneorder <- all_quant[[1]]$gene_exp_tiled %>%
-  filter(!str_detect(gene, '^R')) %>% pull(gene) %>% unique()
+  filter(!str_detect(gene, '^R|^Bambu')) %>% pull(gene) %>% unique()
 
 truecpm_gene <- log2(gene_counts_bambu[,-1] + 1)[geneorder, ] %>% 
   as.matrix() %>%
   c()
 
 txorder <- all_quant[[1]]$tx_exp_tiled %>%
-  filter(!str_detect(tx, '^R')) %>% pull(tx) %>% unique()
+  filter(!str_detect(tx, '^R|^Bambu')) %>% pull(tx) %>% unique()
 
 truecpm_tx <- log2(tx_counts_bambu$counts + 1)[txorder, ] %>%
   as.matrix() %>%
@@ -113,9 +113,28 @@ truecpm_tx <- log2(tx_counts_bambu$counts + 1)[txorder, ] %>%
 # gene_sequin <- grep('^R', all_quant[[1]]$gene_exp_tiled$gene)
 # tx_sequin <- grep('^R', all_quant[[1]]$tx_exp_tiled$tx)
   
+# cor_noseq <- lapply(all_quant, function(x){
+#   cor.tx <- cor(x$tx_exp_tiled$assemble_cpm, truecpm_tx)
+#   cor.gene <- cor(x$gene_exp_tiled$assemble_cpm, truecpm_gene)
+#   res <- data.frame(cor.tx = cor.tx, cor.gene = cor.gene)
+# }) %>% rbindlist() %>%
+#   mutate(data = names(all_quant))
+
+# remove bambu tx, only correlate reference
+# cor_noseq <- lapply(all_quant, function(x){
+#   cor.tx <- cor(x$tx_exp_tiled %>% filter(tx %in% txorder) %>% pull(assemble_cpm.max), 
+#                 truecpm_tx)
+#   cor.gene <- cor(x$gene_exp_tiled %>% filter(gene %in% geneorder) %>% pull(assemble_cpm), 
+#                   truecpm_gene)
+#   res <- data.frame(cor.tx = cor.tx, cor.gene = cor.gene)
+# }) %>% rbindlist() %>%
+#   mutate(data = names(all_quant))
+
 cor_noseq <- lapply(all_quant, function(x){
-  cor.tx <- cor(x$tx_exp_tiled$assemble_cpm, truecpm_tx)
-  cor.gene <- cor(x$gene_exp_tiled$assemble_cpm, truecpm_gene)
+  cor.tx <- cor(log2((x$tx_exp_tiled %>% filter(tx %in% txorder) %>% pull(counts.max)) + 1), 
+                truecpm_tx)
+  cor.gene <- cor(log2((x$gene_exp_tiled %>% filter(gene %in% geneorder) %>% pull(assemble_count)) + 1), 
+                  truecpm_gene)
   res <- data.frame(cor.tx = cor.tx, cor.gene = cor.gene)
 }) %>% rbindlist() %>%
   mutate(data = names(all_quant))

@@ -164,8 +164,7 @@ cor_noseq2 <- lapply(all_quant2, function(x){
   
   stopifnot(df_ass$txid != rep(txid, 6))
   
-  cor.tx <- cor(df_ass%>%
-                  pull(assemble_cpm), 
+  cor.tx <- cor(log2(df_ass$counts.max + 1), 
                 log2(tx_counts_bambu$counts + 1)[txid, ] %>%
                   as.matrix() %>%
                   c())
@@ -179,9 +178,7 @@ cor_noseq2 <- lapply(all_quant2, function(x){
   
   stopifnot(df_ass$gene != rep(geneid, 6))
   
-  cor.gene <- cor(x$gene_exp_tiled %>%
-                    filter(gene %in% geneid) %>%
-                    pull(assemble_cpm), 
+  cor.gene <- cor(log2(df_ass2$assemble_count + 1), 
                   log2(gene_counts_bambu[,-1] + 1)[geneid, ] %>% 
                     as.matrix() %>%
                     c())
@@ -215,8 +212,7 @@ cor_seq2 <- lapply(all_quant2, function(x){
   
   stopifnot(df_ass$txid != rep(txid, 6))
   
-  cor.tx <- cor(df_ass%>%
-                  pull(assemble_cpm), 
+  cor.tx <- cor(log2(df_ass$counts.max + 1), 
                 sequin.tx.exp[txid, ] %>%
                   as.matrix() %>%
                   c())
@@ -231,9 +227,7 @@ cor_seq2 <- lapply(all_quant2, function(x){
   
   stopifnot(df_ass$gene != rep(geneid, 6))
   
-  cor.gene <- cor(x$gene_exp_tiled %>%
-                    filter(gene %in% geneid) %>%
-                    pull(assemble_cpm), 
+  cor.gene <- cor(log2(df_ass2$assemble_count + 1), 
                   sequin.gene.exp[geneid, ] %>% 
                     as.matrix() %>%
                     c())

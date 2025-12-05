@@ -119,8 +119,7 @@ cor_noseq2 <- lapply(all_quant2, function(x){
   
   stopifnot(df_ass$tx == rep(txid, 6))
   
-  cor.tx <- cor(df_ass%>%
-                  pull(assemble_cpm), 
+  cor.tx <- cor(log2(df_ass$counts.max + 1), 
                 log2(tx_counts_bambu$counts + 1)[txid, ] %>%
                   as.matrix() %>%
                   c())
@@ -134,8 +133,7 @@ cor_noseq2 <- lapply(all_quant2, function(x){
   
   stopifnot(df_ass2$gene == rep(geneid, 6))
   
-  cor.gene <- cor(df_ass2 %>%
-                    pull(assemble_cpm), 
+  cor.gene <- cor(log2(df_ass2$assemble_count + 1), 
                   log2(gene_counts_bambu[,-1] + 1)[geneid, ] %>% 
                     as.matrix() %>%
                     c())
