@@ -13,7 +13,7 @@
   - [License](#license)
 
 
-# Longread_denovo_benchmark
+# A comprehensive evaluation of long-read de novo transcriptome assembly
 [![DOI](https://zenodo.org/badge/895347332.svg)](https://doi.org/10.5281/zenodo.18448217)
 
 Code to generate, process and quality check long read *de novo* transcriptome assembly
