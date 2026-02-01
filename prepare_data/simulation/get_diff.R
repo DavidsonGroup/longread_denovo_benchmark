@@ -1,7 +1,7 @@
 
 library(tidyverse)
 
-baselineAbundance <- readRDS("../baselineAbundance.rds") * 1e6
+baselineAbundance <- readRDS("baselineAbundance.rds") * 1e6
 
 table <- read.table('sqanti-sim_index.tsv', header = T, sep = '\t')
 

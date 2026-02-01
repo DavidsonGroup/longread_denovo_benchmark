@@ -20,6 +20,7 @@ genome="/vast/projects/lab_davidson/yan.a/ref/gencode/GRCh38.primary_assembly.ge
 
 mkdir -p design
 cd design
+cp ../baselineAbundance.rds .
 
 # classify
 sqanti-sim.py classif \
