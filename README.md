@@ -1,7 +1,7 @@
 - [Longread\_denovo\_benchmark](#longread_denovo_benchmark)
   - [Generate simulation data](#generate-simulation-data)
   - [Assemble](#assemble)
-    - [ONT simulation data (unstraned)](#ont-simulation-data-unstraned)
+    - [ONT simulation data (unstranded)](#ont-simulation-data-unstranded)
     - [ONT PCR-cDNA data from cancer cell lines (stranded)](#ont-pcr-cdna-data-from-cancer-cell-lines-stranded)
     - [ONT Direct RNA data from cancer cell lines (stranded)](#ont-direct-rna-data-from-cancer-cell-lines-stranded)
     - [PacBio kinnex Human PBMC single-cell data 10x 3' kit (stranded)](#pacbio-kinnex-human-pbmc-single-cell-data-10x-3-kit-stranded)
@@ -14,6 +14,8 @@
 
 
 # Longread_denovo_benchmark
+[![DOI](https://zenodo.org/badge/895347332.svg)](https://doi.org/10.5281/zenodo.18448217)
+
 Code to generate, process and quality check long read *de novo* transcriptome assembly
 
 ## Generate simulation data
@@ -29,26 +31,34 @@ The simulated data was non-stranded, and contains 2000 DE genes, 2000 genes with
 
 
 ## Assemble 
-All assemblies are uploaded to https://doi.org/10.5281/zenodo.17538009.- [Longread\_denovo\_benchmark](#longread_denovo_benchmark)
+All assemblies are uploaded to https://doi.org/10.5281/zenodo.17538009.
 
-### ONT simulation data (unstraned)
+### ONT simulation data (unstranded)
+Data downloaded and processed using [code](prepare_data/simulation/). 
+
+Hybrid simulation data generated using [code](prepare_data/simulation_hybrid/).
+
 [Code for assembling](assemble/simulation/)
 
 ### ONT PCR-cDNA data from cancer cell lines (stranded)
+Hybrid PCR-cDNA data generated using [code](prepare_data/pcr_cdna_hybrid/).
+
 [Code for assembling](assemble/pcr_cdna/)
 
 ### ONT Direct RNA data from cancer cell lines (stranded)
 [Code for assembling](assemble/drna/)
 
 ### PacBio kinnex Human PBMC single-cell data 10x 3' kit (stranded)
-Data downloaded and processed use [code](prepare_data/single_cell/)
-[Code for assembling](assemble/single_cell/)
+Data downloaded and processed using [code](prepare_data/single_cell/). 
+
+[Code for assembling](assemble/single_cell/). 
 
 ### ONT Pea PCR-cDNA data (stranded)
 [Code for assembling](assemble/pea/)
 
 ## Generate summary and quality metrics
-We now provide code to run all quanlity checks, this can also be done using the [nextflow pipeline denovo_qc_nextflow](https://github.com/alexyfyf/denovo_qc_nextflow). 
+We now provide the code to run all quality checks using the [nextflow pipeline denovo_qc_nextflow](https://github.com/alexyfyf/denovo_qc_nextflow). 
+Old scripts for qc can also be found in [qc/](qc/).
 
 [Code for generating quality metrics](qc/)
 
@@ -72,7 +82,7 @@ We then performed DE analysis (DGE, DTE, DTU) using the count matrix from step 8
 ## Reference
 Towards accurate, reference-free differential expression: A comprehensive evaluation of long-read *de novo* transcriptome assembly.
 Feng Yan, Pedro L. Baldoni, James Lancaster, Matthew E. Ritchie, Mathew G. Lewsey, Quentin Gouil, Nadia M. Davidson.
-**bioRxiv** 2025.02.02.635999; doi: https://doi.org/10.1101/2025.02.02.635999
+**bioRxiv** 2025.02.02.635999; doi: https://doi.org/10.1101/2025.02.02.635999v2
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
